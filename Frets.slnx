@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Frets.Api/Frets.Api.csproj" />
+  <Project Path="Frets.Core/Frets.Core.csproj" />
+  <Project Path="Frets.Infrastructure/Frets.Infrastructure.csproj" />
+</Solution>
