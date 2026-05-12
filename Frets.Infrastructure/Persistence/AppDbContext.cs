@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<UserChordProgress> UserChordProgress => Set<UserChordProgress>();
     public DbSet<XpEvent> XpEvents => Set<XpEvent>();
     public DbSet<LevelThreshold> LevelThresholds => Set<LevelThreshold>();
+    public DbSet<Artist> Artists => Set<Artist>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +29,12 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.Email).IsUnique();
             e.HasIndex(x => x.Username).IsUnique();
+        });
+
+        modelBuilder.Entity<Artist>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Slug).IsUnique();
         });
 
         modelBuilder.Entity<Song>(e =>
@@ -42,6 +49,13 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.StatusChangedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Artist)
+                .WithMany(x => x.Songs)
+                .HasForeignKey(x => x.ArtistId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(x => new { x.ArtistId, x.TitleSlug }).IsUnique();
         });
 
         modelBuilder.Entity<SongVersion>(e =>
