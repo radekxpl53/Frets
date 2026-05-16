@@ -19,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<XpEvent> XpEvents => Set<XpEvent>();
     public DbSet<LevelThreshold> LevelThresholds => Set<LevelThreshold>();
     public DbSet<Artist> Artists => Set<Artist>();
+    public DbSet<VersionSuggestion> VersionSuggestions => Set<VersionSuggestion>();
+    public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -141,6 +143,38 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LevelThreshold>(e =>
         {
             e.HasKey(x => x.Level);
+        });
+
+        modelBuilder.Entity<VersionSuggestion>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Content).HasColumnType("jsonb");
+            e.HasOne(x => x.SongVersion)
+                .WithMany()
+                .HasForeignKey(x => x.VersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Author)
+                .WithMany(x => x.VersionSuggestions)
+                .HasForeignKey(x => x.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SuggestionVote>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.SuggestionId, x.UserId }).IsUnique();
+            e.HasOne(x => x.Suggestion)
+                .WithMany(x => x.Votes)
+                .HasForeignKey(x => x.SuggestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User)
+                .WithMany(x => x.SuggestionVotes)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

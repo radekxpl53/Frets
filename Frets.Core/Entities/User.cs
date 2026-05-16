@@ -19,4 +19,7 @@ public class User
     public ICollection<SongVote> SongVotes { get; set; } = [];
     public ICollection<XpEvent> XpEvents { get; set; } = [];
     public ICollection<UserChordProgress> ChordProgress { get; set; } = [];
+
+    public ICollection<VersionSuggestion> VersionSuggestions { get; set; } = [];
+    public ICollection<SuggestionVote> SuggestionVotes { get; set; } = [];
 }

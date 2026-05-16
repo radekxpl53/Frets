@@ -72,4 +72,27 @@ public class SongsController : ControllerBase
         return Ok("Vote registered.");
     }
 
+    [HttpGet("{id}/versions")]
+    public async Task<IActionResult> GetVersions(Guid id)
+    {
+        var versions = await _songService.GetVersionsAsync(id);
+        return Ok(versions);
+    }
+
+    [HttpPost("{id}/versions")]
+    [Authorize]
+    public async Task<IActionResult> CreateVersion(Guid id, [FromBody] CreateSongVersionRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var authorId = Guid.Parse(userIdClaim);
+        var version = await _songService.CreateVersionAsync(id, request, authorId);
+
+        if (version == null)
+            return BadRequest("Song not found, you are not the author, or invalid version type.");
+
+        return Ok(version);
+    }
+
 }

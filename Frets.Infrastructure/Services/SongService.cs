@@ -183,4 +183,113 @@ public class SongService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<string?> ChangeStatusAsync(Guid songId, string newStatus)
+    {
+        var song = await _context.Songs.FindAsync(songId);
+        if (song == null) return "Song not found.";
+
+        song.Status = newStatus;
+        song.StatusChangedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return null;
+    }
+
+    public async Task<SongVersionResponse?> CreateVersionAsync(Guid songId, CreateSongVersionRequest request, Guid authorId)
+    {
+        var song = await _context.Songs.FindAsync(songId);
+        if (song == null) return null;
+
+        if (song.AuthorId != authorId) return null;
+
+        var validTypes = new[] { "chords", "tab" };
+        if (!validTypes.Contains(request.VersionType)) return null;
+
+        var version = new SongVersion
+        {
+            Id = Guid.NewGuid(),
+            SongId = songId,
+            Label = request.Label,
+            VersionType = request.VersionType,
+            Tuning = request.Tuning,
+            Key = request.Key,
+            Capo = request.Capo,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.SongVersions.Add(version);
+
+        if (request.VersionType == "chords")
+        {
+            _context.VersionChords.Add(new VersionChords
+            {
+                Id = Guid.NewGuid(),
+                VersionId = version.Id,
+                Content = request.Content
+            });
+        }
+        else
+        {
+            _context.VersionTabs.Add(new VersionTab
+            {
+                Id = Guid.NewGuid(),
+                VersionId = version.Id,
+                Content = request.Content
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        return new SongVersionResponse(
+            version.Id,
+            version.Label,
+            version.VersionType,
+            version.Tuning,
+            version.Key,
+            version.Capo,
+            request.Content
+        );
+    }
+
+    public async Task<List<SongVersionResponse>> GetVersionsAsync(Guid songId)
+    {
+        var versions = await _context.SongVersions
+            .Where(v => v.SongId == songId)
+            .ToListAsync();
+
+        var result = new List<SongVersionResponse>();
+
+        foreach (var version in versions)
+        {
+            string content = string.Empty;
+
+            if (version.VersionType == "chords")
+            {
+                content = await _context.VersionChords
+                    .Where(vc => vc.VersionId == version.Id)
+                    .Select(vc => vc.Content)
+                    .FirstOrDefaultAsync() ?? string.Empty;
+            }
+            else
+            {
+                content = await _context.VersionTabs
+                    .Where(vt => vt.VersionId == version.Id)
+                    .Select(vt => vt.Content)
+                    .FirstOrDefaultAsync() ?? string.Empty;
+            }
+
+            result.Add(new SongVersionResponse(
+                version.Id,
+                version.Label,
+                version.VersionType,
+                version.Tuning,
+                version.Key,
+                version.Capo,
+                content
+            ));
+        }
+
+        return result;
+    }
+
 }

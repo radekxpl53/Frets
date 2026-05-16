@@ -47,4 +47,42 @@ public class UsersController : ControllerBase
         return Ok("Chord progress updated.");
     }
 
+    [HttpGet("me/chords")]
+    [Authorize]
+    public async Task<IActionResult> GetChordProgress()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var progress = await _userService.GetChordProgressAsync(userId);
+
+        return Ok(progress);
+    }
+
+    [HttpGet("me/songs")]
+    [Authorize]
+    public async Task<IActionResult> GetPlayableSongs()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var songs = await _userService.GetPlayableSongsAsync(userId);
+
+        return Ok(songs);
+    }
+
+    [HttpPost("me/activity")]
+    [Authorize]
+    public async Task<IActionResult> RecordActivity()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        await _userService.RecordActivityAsync(userId);
+
+        return Ok("Activity recorded.");
+    }
 }

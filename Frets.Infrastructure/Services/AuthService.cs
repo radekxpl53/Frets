@@ -51,6 +51,46 @@ public class AuthService
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             return null;
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (user.LastActivityDate != today)
+        {
+            if (user.LastActivityDate == today.AddDays(-1))
+                user.CurrentStreak++;
+            else
+                user.CurrentStreak = 1;
+
+            if (user.CurrentStreak > user.LongestStreak)
+                user.LongestStreak = user.CurrentStreak;
+
+            user.LastActivityDate = today;
+            user.Xp += 10;
+
+            _context.XpEvents.Add(new Core.Entities.XpEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                EventType = "daily_login",
+                XpAmount = 10,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            if (user.CurrentStreak % 7 == 0)
+            {
+                user.Xp += 25;
+                _context.XpEvents.Add(new Core.Entities.XpEvent
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    EventType = "streak_bonus",
+                    XpAmount = 25,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
         var token = GenerateToken(user);
 
         return new AuthResponse(

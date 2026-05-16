@@ -65,6 +65,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SongService>();
 builder.Services.AddScoped<ChordService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ArtistService>();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
