@@ -15,12 +15,26 @@ public class SongService
         _context = context;
     }
 
-    public async Task<List<SongResponse>> GetApprovedSongsAsync()
+    public async Task<List<SongResponse>> GetApprovedSongsAsync(string? genre, string? artist, string? search)
     {
-        return await _context.Songs
+        var query = _context.Songs
             .Where(s => s.Status == "approved")
             .Include(s => s.Artist)
             .Include(s => s.Author)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(genre))
+            query = query.Where(s => s.Genre != null && s.Genre.ToLower() == genre.ToLower());
+
+        if (!string.IsNullOrEmpty(artist))
+            query = query.Where(s => s.Artist.Slug == SlugHelper.Generate(artist));
+
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(s =>
+                s.Title.ToLower().Contains(search.ToLower()) ||
+                s.Artist.Name.ToLower().Contains(search.ToLower()));
+
+        return await query
             .Select(s => new SongResponse(
                 s.Id,
                 s.Title,
@@ -96,6 +110,42 @@ public class SongService
         };
 
         _context.Songs.Add(song);
+
+        if (request.Version != null)
+        {
+            var version = new SongVersion
+            {
+                Id = Guid.NewGuid(),
+                SongId = song.Id,
+                VersionType = request.Version.VersionType,
+                Tuning = request.Version.Tuning,
+                Key = request.Version.Key,
+                Capo = request.Version.Capo,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.SongVersions.Add(version);
+
+            if (request.Version.VersionType == "chords")
+            {
+                _context.VersionChords.Add(new VersionChords
+                {
+                    Id = Guid.NewGuid(),
+                    VersionId = version.Id,
+                    Content = request.Version.Content
+                });
+            }
+            else
+            {
+                _context.VersionTabs.Add(new VersionTab
+                {
+                    Id = Guid.NewGuid(),
+                    VersionId = version.Id,
+                    Content = request.Version.Content
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         return new SongResponse(
@@ -209,7 +259,6 @@ public class SongService
         {
             Id = Guid.NewGuid(),
             SongId = songId,
-            Label = request.Label,
             VersionType = request.VersionType,
             Tuning = request.Tuning,
             Key = request.Key,
@@ -242,7 +291,6 @@ public class SongService
 
         return new SongVersionResponse(
             version.Id,
-            version.Label,
             version.VersionType,
             version.Tuning,
             version.Key,
@@ -280,7 +328,6 @@ public class SongService
 
             result.Add(new SongVersionResponse(
                 version.Id,
-                version.Label,
                 version.VersionType,
                 version.Tuning,
                 version.Key,

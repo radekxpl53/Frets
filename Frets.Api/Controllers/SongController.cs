@@ -19,9 +19,12 @@ public class SongsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+    [FromQuery] string? genre,
+    [FromQuery] string? artist,
+    [FromQuery] string? search)
     {
-        var songs = await _songService.GetApprovedSongsAsync();
+        var songs = await _songService.GetApprovedSongsAsync(genre, artist, search);
         return Ok(songs);
     }
 

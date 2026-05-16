@@ -176,4 +176,34 @@ public class UserService
 			CreatedAt = DateTime.UtcNow
 		});
 	}
+
+	public async Task<PublicUserProfileResponse?> GetPublicProfileAsync(string username)
+	{
+		var user = await _context.Users
+			.FirstOrDefaultAsync(u => u.Username == username);
+
+		if (user == null) return null;
+
+		var levelLabel = await _context.LevelThresholds
+			.Where(l => l.Level == user.Level)
+			.Select(l => l.Label)
+			.FirstOrDefaultAsync() ?? "Beginner";
+
+		var chordsLearned = await _context.UserChordProgress
+			.CountAsync(p => p.UserId == user.Id && p.MasteryLevel == "mastered");
+
+		var songsAdded = await _context.Songs
+			.CountAsync(s => s.AuthorId == user.Id);
+
+		return new PublicUserProfileResponse(
+			user.Username,
+			user.Level,
+			levelLabel,
+			user.CurrentStreak,
+			user.LongestStreak,
+			chordsLearned,
+			songsAdded,
+			user.CreatedAt
+		);
+	}
 }

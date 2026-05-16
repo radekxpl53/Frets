@@ -10,10 +10,12 @@ namespace Frets.Api.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly SongService _songService;
+    private readonly SuggestionService _suggestionService;
 
-    public AdminController(SongService songService)
+    public AdminController(SongService songService, SuggestionService suggestionService)
     {
         _songService = songService;
+        _suggestionService = suggestionService;
     }
 
     [HttpPost("songs/{id}/approve")]
@@ -39,4 +41,21 @@ public class AdminController : ControllerBase
         if (error != null) return BadRequest(error);
         return Ok("Song set to pending.");
     }
+
+    [HttpPost("suggestions/{id}/approve")]
+    public async Task<IActionResult> ApproveSuggestion(Guid id)
+    {
+        var error = await _suggestionService.AdminReviewAsync(id, "approved");
+        if (error != null) return BadRequest(error);
+        return Ok("Suggestion approved.");
+    }
+
+    [HttpPost("suggestions/{id}/reject")]
+    public async Task<IActionResult> RejectSuggestion(Guid id)
+    {
+        var error = await _suggestionService.AdminReviewAsync(id, "rejected");
+        if (error != null) return BadRequest(error);
+        return Ok("Suggestion rejected.");
+    }
+
 }

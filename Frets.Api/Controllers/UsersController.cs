@@ -85,4 +85,14 @@ public class UsersController : ControllerBase
 
         return Ok("Activity recorded.");
     }
+
+    [HttpGet("{username}")]
+    public async Task<IActionResult> GetPublicProfile(string username)
+    {
+        var profile = await _userService.GetPublicProfileAsync(username);
+
+        if (profile == null) return NotFound();
+
+        return Ok(profile);
+    }
 }
