@@ -8,11 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.OpenApi.Models;
-
-Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,22 +57,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-        };
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"Auth failed: {context.Exception.Message}");
-                var authHeader = context.Request.Headers["Authorization"].ToString();
-                Console.WriteLine($"Authorization header: '{authHeader}'");
-                return Task.CompletedTask;
-            },
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<SongService>();
+builder.Services.AddScoped<ChordService>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -87,23 +75,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
-    Console.WriteLine("Seeding chords...");
     await ChordSeeder.SeedAsync(db);
-    Console.WriteLine("Seeding levels...");
     await LevelThresholdSeeder.SeedAsync(db);
-    Console.WriteLine("Seeding done.");
 }
 
 if (app.Environment.IsDevelopment())
 {
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

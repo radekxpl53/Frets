@@ -56,4 +56,20 @@ public class SongsController : ControllerBase
             new { artistSlug = SlugHelper.Generate(request.Artist), titleSlug = SlugHelper.Generate(request.Title) },
             song);
     }
+
+    [HttpPost("{id}/vote")]
+    [Authorize]
+    public async Task<IActionResult> Vote(Guid id, [FromBody] VoteRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var error = await _songService.VoteAsync(id, userId, request.IsPositive);
+
+        if (error != null) return BadRequest(error);
+
+        return Ok("Vote registered.");
+    }
+
 }

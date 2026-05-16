@@ -108,4 +108,79 @@ public class SongService
             song.SubmittedAt
         );
     }
+
+    public async Task<string?> VoteAsync(Guid songId, Guid userId, bool isPositive)
+    {
+        var song = await _context.Songs.FirstOrDefaultAsync(s => s.Id == songId);
+        if (song == null) return "Song not found.";
+
+        if (song.Status != "pending")
+            return "Song is not open for voting.";
+
+        var existingVote = await _context.SongVotes
+            .FirstOrDefaultAsync(v => v.SongId == songId && v.UserId == userId);
+
+        if (existingVote != null)
+        {
+            existingVote.IsPositive = isPositive;
+            existingVote.VotedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return "User not found.";
+
+            var weight = user.Level switch
+            {
+                <= 4 => 1,
+                <= 9 => 2,
+                _ => 3
+            };
+
+            _context.SongVotes.Add(new SongVote
+            {
+                Id = Guid.NewGuid(),
+                SongId = songId,
+                UserId = userId,
+                IsPositive = isPositive,
+                VoteWeight = weight,
+                VotedAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync();
+        await CheckVoteThresholdAsync(songId);
+
+        return null;
+    }
+
+    private async Task CheckVoteThresholdAsync(Guid songId)
+    {
+        var votes = await _context.SongVotes
+            .Where(v => v.SongId == songId)
+            .ToListAsync();
+
+        var totalWeight = votes.Sum(v => v.VoteWeight);
+        if (totalWeight < 10) return;
+
+        var positiveWeight = votes.Where(v => v.IsPositive).Sum(v => v.VoteWeight);
+        var ratio = (double)positiveWeight / totalWeight;
+
+        var song = await _context.Songs.FindAsync(songId);
+        if (song == null) return;
+
+        if (ratio >= 0.8)
+        {
+            song.Status = "approved";
+            song.StatusChangedAt = DateTime.UtcNow;
+        }
+        else if (totalWeight >= 30)
+        {
+            song.Status = "rejected";
+            song.StatusChangedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
 }
