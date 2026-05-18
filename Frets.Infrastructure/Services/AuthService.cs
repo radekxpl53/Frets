@@ -14,11 +14,13 @@ public class AuthService
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly EmailService _emailService;
 
-    public AuthService(AppDbContext context, IConfiguration configuration)
+    public AuthService(AppDbContext context, IConfiguration configuration, EmailService emailService)
     {
         _context = context;
         _configuration = configuration;
+        _emailService = emailService;
     }
 
     public async Task<User?> RegisterAsync(string username, string email, string password)
@@ -125,5 +127,63 @@ public class AuthService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public async Task<bool> ForgotPasswordAsync(string email)
+{
+    try
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null) return false;
+
+        var oldTokens = _context.PasswordResetTokens
+            .Where(t => t.UserId == user.Id && !t.Used);
+        _context.PasswordResetTokens.RemoveRange(oldTokens);
+
+        var token = Guid.NewGuid().ToString("N");
+
+        _context.PasswordResetTokens.Add(new Core.Entities.PasswordResetToken
+        {
+            Id = Guid.NewGuid(),
+            Token = token,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            Used = false
+        });
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Token saved: {token}");
+
+        var resetLink = $"http://localhost:5173/reset-password?token={token}";
+        await _emailService.SendAsync(
+            user.Email,
+            "Frets — Reset your password",
+            $"<p>Click the link below to reset your password:</p><a href='{resetLink}'>{resetLink}</a><p>The link expires in 1 hour.</p>"
+        );
+
+        Console.WriteLine("Email sent successfully");
+        return true;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+        return false;
+    }
+}
+
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword)
+    {
+        var resetToken = await _context.PasswordResetTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == token && !t.Used);
+
+        if (resetToken == null) return false;
+        if (resetToken.ExpiresAt < DateTime.UtcNow) return false;
+
+        resetToken.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        resetToken.Used = true;
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

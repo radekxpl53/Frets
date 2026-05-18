@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<Artist> Artists => Set<Artist>();
     public DbSet<VersionSuggestion> VersionSuggestions => Set<VersionSuggestion>();
     public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +176,15 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.SuggestionVotes)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
