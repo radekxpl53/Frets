@@ -339,4 +339,125 @@ public class SongService
         return result;
     }
 
+    public async Task<SongResponse?> UpdateAsync(string artistSlug, string titleSlug, Guid userId, UpdateSongRequest request)
+    {
+        var song = await _context.Songs
+            .Include(s => s.Artist)
+            .Include(s => s.Author)
+            .FirstOrDefaultAsync(s =>
+                s.Artist.Slug == artistSlug &&
+                s.TitleSlug == titleSlug);
+
+        if (song == null) return null;
+        if (song.AuthorId != userId) return null;
+
+        if (!string.IsNullOrEmpty(request.Title))
+        {
+            song.Title = request.Title;
+            song.TitleSlug = SlugHelper.Generate(request.Title);
+        }
+
+        if (!string.IsNullOrEmpty(request.Genre))
+            song.Genre = request.Genre;
+
+        await _context.SaveChangesAsync();
+
+        return new SongResponse(
+            song.Id,
+            song.Title,
+            song.Artist.Name,
+            song.Genre,
+            song.Status,
+            song.Author.Username,
+            song.SubmittedAt
+        );
+    }
+
+    public async Task<bool> DeleteAsync(string artistSlug, string titleSlug, Guid userId, bool isAdmin)
+    {
+        var song = await _context.Songs
+            .Include(s => s.Artist)
+            .FirstOrDefaultAsync(s =>
+                s.Artist.Slug == artistSlug &&
+                s.TitleSlug == titleSlug);
+
+        if (song == null) return false;
+        if (song.AuthorId != userId && !isAdmin) return false;
+
+        _context.Songs.Remove(song);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<SongVersionResponse?> UpdateVersionAsync(Guid versionId, Guid userId, UpdateSongVersionRequest request)
+    {
+        var version = await _context.SongVersions
+            .Include(v => v.Song)
+            .FirstOrDefaultAsync(v => v.Id == versionId);
+
+        if (version == null) return null;
+        if (version.Song.AuthorId != userId) return null;
+
+        if (!string.IsNullOrEmpty(request.Tuning))
+            version.Tuning = request.Tuning;
+
+        if (request.Key != null)
+            version.Key = request.Key;
+
+        if (request.Capo.HasValue)
+            version.Capo = request.Capo.Value;
+
+        if (!string.IsNullOrEmpty(request.Content))
+        {
+            if (version.VersionType == "chords")
+            {
+                var versionChords = await _context.VersionChords
+                    .FirstOrDefaultAsync(vc => vc.VersionId == versionId);
+                if (versionChords != null)
+                    versionChords.Content = request.Content;
+            }
+            else
+            {
+                var versionTab = await _context.VersionTabs
+                    .FirstOrDefaultAsync(vt => vt.VersionId == versionId);
+                if (versionTab != null)
+                    versionTab.Content = request.Content;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        var content = version.VersionType == "chords"
+            ? await _context.VersionChords
+                .Where(vc => vc.VersionId == versionId)
+                .Select(vc => vc.Content)
+                .FirstOrDefaultAsync() ?? string.Empty
+            : await _context.VersionTabs
+                .Where(vt => vt.VersionId == versionId)
+                .Select(vt => vt.Content)
+                .FirstOrDefaultAsync() ?? string.Empty;
+
+        return new SongVersionResponse(
+            version.Id,
+            version.VersionType,
+            version.Tuning,
+            version.Key,
+            version.Capo,
+            content
+        );
+    }
+
+    public async Task<bool> DeleteVersionAsync(Guid versionId, Guid userId, bool isAdmin)
+    {
+        var version = await _context.SongVersions
+            .Include(v => v.Song)
+            .FirstOrDefaultAsync(v => v.Id == versionId);
+
+        if (version == null) return false;
+        if (version.Song.AuthorId != userId && !isAdmin) return false;
+
+        _context.SongVersions.Remove(version);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

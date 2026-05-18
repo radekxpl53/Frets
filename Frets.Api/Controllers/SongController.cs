@@ -98,4 +98,65 @@ public class SongsController : ControllerBase
         return Ok(version);
     }
 
+    [HttpPut("{artistSlug}/{titleSlug}")]
+    [Authorize]
+    public async Task<IActionResult> Update(string artistSlug, string titleSlug, [FromBody] UpdateSongRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var song = await _songService.UpdateAsync(artistSlug, titleSlug, userId, request);
+
+        if (song == null) return BadRequest("Song not found or you are not the author.");
+
+        return Ok(song);
+    }
+
+    [HttpDelete("{artistSlug}/{titleSlug}")]
+    [Authorize]
+    public async Task<IActionResult> Delete(string artistSlug, string titleSlug)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var isAdmin = User.IsInRole("admin");
+        var success = await _songService.DeleteAsync(artistSlug, titleSlug, userId, isAdmin);
+
+        if (!success) return BadRequest("Song not found or you are not authorized.");
+
+        return Ok("Song deleted.");
+    }
+
+    [HttpPut("{artistSlug}/{titleSlug}/versions/{versionId}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateVersion(string artistSlug, string titleSlug, Guid versionId, [FromBody] UpdateSongVersionRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var version = await _songService.UpdateVersionAsync(versionId, userId, request);
+
+        if (version == null) return BadRequest("Version not found or you are not the author.");
+
+        return Ok(version);
+    }
+
+    [HttpDelete("{artistSlug}/{titleSlug}/versions/{versionId}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteVersion(string artistSlug, string titleSlug, Guid versionId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var isAdmin = User.IsInRole("admin");
+        var success = await _songService.DeleteVersionAsync(versionId, userId, isAdmin);
+
+        if (!success) return BadRequest("Version not found or you are not authorized.");
+
+        return Ok("Version deleted.");
+    }
 }
