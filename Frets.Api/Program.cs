@@ -68,6 +68,8 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ArtistService>();
 builder.Services.AddScoped<SuggestionService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<XpService>();
+builder.Services.AddScoped<ChordIndexer>();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();

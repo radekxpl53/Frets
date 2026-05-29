@@ -18,6 +18,8 @@ public class Song
 
     public User Author { get; set; } = null!;
     public User? StatusChangedByUser { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
     public ICollection<SongVersion> Versions { get; set; } = [];
     public ICollection<SongVote> Votes { get; set; } = [];
 }

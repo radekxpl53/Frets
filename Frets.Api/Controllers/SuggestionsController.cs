@@ -54,4 +54,20 @@ public class SuggestionsController : ControllerBase
 
         return Ok("Vote registered.");
     }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim);
+        var isAdmin = User.IsInRole("admin");
+        var success = await _suggestionService.DeleteAsync(id, userId, isAdmin);
+
+        if (!success) return BadRequest("Suggestion not found or you are not authorized.");
+
+        return Ok("Suggestion deleted.");
+    }
 }

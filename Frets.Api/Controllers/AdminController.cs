@@ -11,11 +11,13 @@ public class AdminController : ControllerBase
 {
     private readonly SongService _songService;
     private readonly SuggestionService _suggestionService;
+    private readonly UserService _userService;
 
-    public AdminController(SongService songService, SuggestionService suggestionService)
+    public AdminController(SongService songService, SuggestionService suggestionService, UserService userService)
     {
         _songService = songService;
         _suggestionService = suggestionService;
+        _userService = userService;
     }
 
     [HttpPost("songs/{id}/approve")]
@@ -56,6 +58,28 @@ public class AdminController : ControllerBase
         var error = await _suggestionService.AdminReviewAsync(id, "rejected");
         if (error != null) return BadRequest(error);
         return Ok("Suggestion rejected.");
+    }
+
+    [HttpGet("songs")]
+    public async Task<IActionResult> GetAllSongs([FromQuery] string? status)
+    {
+        var songs = await _songService.GetAllSongsAdminAsync(status);
+        return Ok(songs);
+    }
+
+    [HttpGet("users")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userService.GetAllUsersAdminAsync();
+        return Ok(users);
+    }
+
+    [HttpDelete("users/{id}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var success = await _userService.DeleteUserAdminAsync(id);
+        if (!success) return NotFound();
+        return Ok("User deleted.");
     }
 
 }

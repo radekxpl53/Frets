@@ -7,203 +7,283 @@ namespace Frets.Infrastructure.Services;
 
 public class UserService
 {
-	private readonly AppDbContext _context;
+    private readonly AppDbContext _context;
+    private readonly XpService _xpService;
 
-	public UserService(AppDbContext context)
-	{
-		_context = context;
-	}
+    public UserService(AppDbContext context, XpService xpService)
+    {
+        _context = context;
+        _xpService = xpService;
+    }
 
-	public async Task<UserProfileResponse?> GetProfileAsync(Guid userId)
-	{
-		var user = await _context.Users
-			.FirstOrDefaultAsync(u => u.Id == userId);
+    public async Task<UserProfileResponse?> GetProfileAsync(Guid userId)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
-		if (user == null) return null;
+        if (user == null) return null;
 
-		var levelLabel = await _context.LevelThresholds
-			.Where(l => l.Level == user.Level)
-			.Select(l => l.Label)
-			.FirstOrDefaultAsync() ?? "Beginner";
+        var levelLabel = await _context.LevelThresholds
+            .Where(l => l.Level == user.Level)
+            .Select(l => l.Label)
+            .FirstOrDefaultAsync() ?? "Beginner";
 
-		var chordsLearned = await _context.UserChordProgress
-			.CountAsync(p => p.UserId == userId && p.MasteryLevel == "mastered");
+        var chordsLearned = await _context.UserChordProgress
+            .CountAsync(p => p.UserId == userId && p.MasteryLevel == "mastered");
 
-		var songsAdded = await _context.Songs
-			.CountAsync(s => s.AuthorId == userId);
+        var songsAdded = await _context.Songs
+            .CountAsync(s => s.AuthorId == userId);
 
-		return new UserProfileResponse(
-			user.Id,
-			user.Username,
-			user.Email,
-			user.Role,
-			user.Xp,
-			user.Level,
-			levelLabel,
-			user.CurrentStreak,
-			user.LongestStreak,
-			chordsLearned,
-			songsAdded,
-			user.CreatedAt
-		);
-	}
+        return new UserProfileResponse(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.Role,
+            user.Xp,
+            user.Level,
+            levelLabel,
+            user.CurrentStreak,
+            user.LongestStreak,
+            chordsLearned,
+            songsAdded,
+            user.CreatedAt
+        );
+    }
 
-	public async Task<bool> UpdateChordProgressAsync(Guid userId, Guid chordId, string masteryLevel)
-	{
-		var validLevels = new[] { "new", "practiced", "mastered" };
-		if (!validLevels.Contains(masteryLevel))
-			return false;
+    public async Task<bool> UpdateChordProgressAsync(Guid userId, Guid chordId, string masteryLevel)
+    {
+        var validLevels = new[] { "new", "practiced", "mastered" };
+        if (!validLevels.Contains(masteryLevel))
+            return false;
 
-		var chord = await _context.Chords.FindAsync(chordId);
-		if (chord == null) return false;
+        var chord = await _context.Chords.FindAsync(chordId);
+        if (chord == null) return false;
 
-		var progress = await _context.UserChordProgress
-			.FirstOrDefaultAsync(p => p.UserId == userId && p.ChordId == chordId);
+        var progress = await _context.UserChordProgress
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.ChordId == chordId);
 
-		if (progress == null)
-		{
-			_context.UserChordProgress.Add(new Core.Entities.UserChordProgress
-			{
-				Id = Guid.NewGuid(),
-				UserId = userId,
-				ChordId = chordId,
-				MasteryLevel = masteryLevel,
-				FirstSeenAt = DateTime.UtcNow,
-				LastPracticed = DateTime.UtcNow
-			});
-		}
-		else
-		{
-			progress.MasteryLevel = masteryLevel;
-			progress.LastPracticed = DateTime.UtcNow;
-		}
+        if (progress == null)
+        {
+            _context.UserChordProgress.Add(new Core.Entities.UserChordProgress
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                ChordId = chordId,
+                MasteryLevel = masteryLevel,
+                FirstSeenAt = DateTime.UtcNow,
+                LastPracticed = DateTime.UtcNow
+            });
 
-		await _context.SaveChangesAsync();
-		return true;
-	}
+            if (masteryLevel == "mastered")
+                await _xpService.AddXpAsync(userId, "chord_learned", XpService.XpValues.ChordLearned, new { chordId });
+        }
+        else
+        {
+            if (progress.MasteryLevel != "mastered" && masteryLevel == "mastered")
+                await _xpService.AddXpAsync(userId, "chord_learned", XpService.XpValues.ChordLearned, new { chordId });
 
-	public async Task<List<UserChordProgressResponse>> GetChordProgressAsync(Guid userId)
-	{
-		return await _context.UserChordProgress
-			.Where(p => p.UserId == userId)
-			.Include(p => p.Chord)
-			.Select(p => new UserChordProgressResponse(
-				p.ChordId,
-				p.Chord.Key,
-				p.Chord.Suffix,
-				p.MasteryLevel,
-				p.FirstSeenAt,
-				p.LastPracticed
-			))
-			.ToListAsync();
-	}
+            progress.MasteryLevel = masteryLevel;
+            progress.LastPracticed = DateTime.UtcNow;
+        }
 
-	public async Task<List<SongResponse>> GetPlayableSongsAsync(Guid userId)
-	{
-		var masteredChordIds = await _context.UserChordProgress
-			.Where(p => p.UserId == userId && p.MasteryLevel == "mastered")
-			.Select(p => p.ChordId)
-			.ToListAsync();
+        await _context.SaveChangesAsync();
+        return true;
+    }
 
-		var playableSongs = await _context.Songs
-			.Where(s => s.Status == "approved")
-			.Include(s => s.Artist)
-			.Include(s => s.Author)
-			.Where(s => s.Versions.Any(v =>
-				!v.ChordIndex.Any() ||
-				v.ChordIndex.All(ci => masteredChordIds.Contains(ci.ChordId))))
-			.Select(s => new SongResponse(
-				s.Id,
-				s.Title,
-				s.Artist.Name,
-				s.Genre,
-				s.Status,
-				s.Author.Username,
-				s.SubmittedAt
-			))
-			.ToListAsync();
+    public async Task<List<UserChordProgressResponse>> GetChordProgressAsync(Guid userId)
+    {
+        return await _context.UserChordProgress
+            .Where(p => p.UserId == userId)
+            .Include(p => p.Chord)
+            .Select(p => new UserChordProgressResponse(
+                p.ChordId,
+                p.Chord.Key,
+                p.Chord.Suffix,
+                p.MasteryLevel,
+                p.FirstSeenAt,
+                p.LastPracticed
+            ))
+            .ToListAsync();
+    }
 
-		return playableSongs;
-	}
+    public async Task<List<SongResponse>> GetPlayableSongsAsync(Guid userId)
+    {
+        var masteredChordIds = await _context.UserChordProgress
+            .Where(p => p.UserId == userId && p.MasteryLevel == "mastered")
+            .Select(p => p.ChordId)
+            .ToListAsync();
 
-	public async Task RecordActivityAsync(Guid userId)
-	{
-		var user = await _context.Users.FindAsync(userId);
-		if (user == null) return;
+        var playableSongs = await _context.Songs
+            .Where(s => s.Status == "approved")
+            .Include(s => s.Artist)
+            .Include(s => s.Author)
+            .Where(s => s.Versions.Any(v =>
+                v.ChordIndex.Any() &&
+                v.ChordIndex.All(ci => masteredChordIds.Contains(ci.ChordId))))
+            .Select(s => new SongResponse(
+                s.Id,
+                s.Title,
+                s.Artist.Name,
+                s.Genre,
+                s.Status,
+                s.Author.Username,
+                s.SubmittedAt
+            ))
+            .ToListAsync();
 
-		var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        Console.WriteLine($"[Playable] {playableSongs.Count} playable songs found");
 
-		if (user.LastActivityDate == today) return;
+        return playableSongs;
+    }
 
-		if (user.LastActivityDate == today.AddDays(-1))
-			user.CurrentStreak++;
-		else
-			user.CurrentStreak = 1;
+    public async Task RecordActivityAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return;
 
-		if (user.CurrentStreak > user.LongestStreak)
-			user.LongestStreak = user.CurrentStreak;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-		user.LastActivityDate = today;
+        if (user.LastActivityDate == today) return;
 
-		await AddXpAsync(user, "daily_login", 10, null);
+        if (user.LastActivityDate == today.AddDays(-1))
+            user.CurrentStreak++;
+        else
+            user.CurrentStreak = 1;
 
-		if (user.CurrentStreak % 7 == 0)
-			await AddXpAsync(user, "streak_bonus", 25, null);
+        if (user.CurrentStreak > user.LongestStreak)
+            user.LongestStreak = user.CurrentStreak;
 
-		await _context.SaveChangesAsync();
-	}
+        user.LastActivityDate = today;
 
-	private async Task AddXpAsync(Core.Entities.User user, string eventType, int xpAmount, object? meta)
-	{
-		user.Xp += xpAmount;
+        await _xpService.AddXpAsync(userId, "daily_login", XpService.XpValues.DailyLogin);
 
-		var newLevel = await _context.LevelThresholds
-			.Where(l => l.XpRequired <= user.Xp)
-			.OrderByDescending(l => l.Level)
-			.Select(l => l.Level)
-			.FirstOrDefaultAsync();
+        if (user.CurrentStreak % 7 == 0)
+            await _xpService.AddXpAsync(userId, "streak_bonus", XpService.XpValues.StreakBonus);
 
-		if (newLevel > user.Level)
-			user.Level = newLevel;
+        await _context.SaveChangesAsync();
+    }
 
-		_context.XpEvents.Add(new Core.Entities.XpEvent
-		{
-			Id = Guid.NewGuid(),
-			UserId = user.Id,
-			EventType = eventType,
-			XpAmount = xpAmount,
-			Meta = meta != null ? System.Text.Json.JsonSerializer.Serialize(meta) : null,
-			CreatedAt = DateTime.UtcNow
-		});
-	}
+    public async Task<PublicUserProfileResponse?> GetPublicProfileAsync(string username)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == username);
 
-	public async Task<PublicUserProfileResponse?> GetPublicProfileAsync(string username)
-	{
-		var user = await _context.Users
-			.FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null) return null;
 
-		if (user == null) return null;
+        var levelLabel = await _context.LevelThresholds
+            .Where(l => l.Level == user.Level)
+            .Select(l => l.Label)
+            .FirstOrDefaultAsync() ?? "Beginner";
 
-		var levelLabel = await _context.LevelThresholds
-			.Where(l => l.Level == user.Level)
-			.Select(l => l.Label)
-			.FirstOrDefaultAsync() ?? "Beginner";
+        var chordsLearned = await _context.UserChordProgress
+            .CountAsync(p => p.UserId == user.Id && p.MasteryLevel == "mastered");
 
-		var chordsLearned = await _context.UserChordProgress
-			.CountAsync(p => p.UserId == user.Id && p.MasteryLevel == "mastered");
+        var songsAdded = await _context.Songs
+            .CountAsync(s => s.AuthorId == user.Id);
 
-		var songsAdded = await _context.Songs
-			.CountAsync(s => s.AuthorId == user.Id);
+        return new PublicUserProfileResponse(
+            user.Username,
+            user.Level,
+            levelLabel,
+            user.CurrentStreak,
+            user.LongestStreak,
+            chordsLearned,
+            songsAdded,
+            user.CreatedAt
+        );
+    }
 
-		return new PublicUserProfileResponse(
-			user.Username,
-			user.Level,
-			levelLabel,
-			user.CurrentStreak,
-			user.LongestStreak,
-			chordsLearned,
-			songsAdded,
-			user.CreatedAt
-		);
-	}
+    public async Task<UserProfileResponse?> UpdateProfileAsync(Guid userId, UpdateUserRequest request)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        if (!string.IsNullOrEmpty(request.Username))
+        {
+            var exists = await _context.Users
+                .AnyAsync(u => u.Username == request.Username && u.Id != userId);
+            if (exists) return null;
+            user.Username = request.Username;
+        }
+
+        if (!string.IsNullOrEmpty(request.Email))
+        {
+            var exists = await _context.Users
+                .AnyAsync(u => u.Email == request.Email && u.Id != userId);
+            if (exists) return null;
+            user.Email = request.Email;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var levelLabel = await _context.LevelThresholds
+            .Where(l => l.Level == user.Level)
+            .Select(l => l.Label)
+            .FirstOrDefaultAsync() ?? "Beginner";
+
+        var chordsLearned = await _context.UserChordProgress
+            .CountAsync(p => p.UserId == userId && p.MasteryLevel == "mastered");
+
+        var songsAdded = await _context.Songs
+            .CountAsync(s => s.AuthorId == userId);
+
+        return new UserProfileResponse(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.Role,
+            user.Xp,
+            user.Level,
+            levelLabel,
+            user.CurrentStreak,
+            user.LongestStreak,
+            chordsLearned,
+            songsAdded,
+            user.CreatedAt
+        );
+    }
+
+    public async Task<bool> DeleteAccountAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        user.IsDeleted = true;
+        user.DeletedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<UserProfileResponse>> GetAllUsersAdminAsync()
+    {
+        return await _context.Users
+            .Select(u => new UserProfileResponse(
+                u.Id,
+                u.Username,
+                u.Email,
+                u.Role,
+                u.Xp,
+                u.Level,
+                "N/A",
+                u.CurrentStreak,
+                u.LongestStreak,
+                0,
+                0,
+                u.CreatedAt
+            ))
+            .ToListAsync();
+    }
+
+    public async Task<bool> DeleteUserAdminAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        user.IsDeleted = true;
+        user.DeletedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

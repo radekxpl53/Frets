@@ -9,10 +9,14 @@ namespace Frets.Infrastructure.Services;
 public class SongService
 {
     private readonly AppDbContext _context;
+    private readonly ChordIndexer _chordIndexer;
+    private readonly XpService _xpService;
 
-    public SongService(AppDbContext context)
+    public SongService(AppDbContext context, ChordIndexer chordIndexer, XpService xpService)
     {
         _context = context;
+        _chordIndexer = chordIndexer;
+        _xpService = xpService;
     }
 
     public async Task<List<SongResponse>> GetApprovedSongsAsync(string? genre, string? artist, string? search)
@@ -134,6 +138,8 @@ public class SongService
                     VersionId = version.Id,
                     Content = request.Version.Content
                 });
+
+                await _chordIndexer.IndexAsync(version.Id, request.Version.Content);
             }
             else
             {
@@ -145,6 +151,8 @@ public class SongService
                 });
             }
         }
+
+        await _xpService.AddXpAsync(authorId, "song_added", XpService.XpValues.SongAdded, new { songId = song.Id });
 
         await _context.SaveChangesAsync();
 
@@ -223,6 +231,7 @@ public class SongService
         {
             song.Status = "approved";
             song.StatusChangedAt = DateTime.UtcNow;
+            await _xpService.AddXpAsync(song.AuthorId, "song_approved", XpService.XpValues.SongApproved, new { songId = song.Id });
         }
         else if (totalWeight >= 30)
         {
@@ -276,6 +285,8 @@ public class SongService
                 VersionId = version.Id,
                 Content = request.Content
             });
+
+            await _chordIndexer.IndexAsync(version.Id, request.Content);
         }
         else
         {
@@ -384,7 +395,9 @@ public class SongService
         if (song == null) return false;
         if (song.AuthorId != userId && !isAdmin) return false;
 
-        _context.Songs.Remove(song);
+        song.IsDeleted = true;
+        song.DeletedAt = DateTime.UtcNow;
+
         await _context.SaveChangesAsync();
         return true;
     }
@@ -415,6 +428,8 @@ public class SongService
                     .FirstOrDefaultAsync(vc => vc.VersionId == versionId);
                 if (versionChords != null)
                     versionChords.Content = request.Content;
+
+                await _chordIndexer.IndexAsync(versionId, request.Content);
             }
             else
             {
@@ -459,5 +474,28 @@ public class SongService
         _context.SongVersions.Remove(version);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<List<SongResponse>> GetAllSongsAdminAsync(string? status)
+    {
+        var query = _context.Songs
+            .Include(s => s.Artist)
+            .Include(s => s.Author)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(status))
+            query = query.Where(s => s.Status == status);
+
+        return await query
+            .Select(s => new SongResponse(
+                s.Id,
+                s.Title,
+                s.Artist.Name,
+                s.Genre,
+                s.Status,
+                s.Author.Username,
+                s.SubmittedAt
+            ))
+            .ToListAsync();
     }
 }

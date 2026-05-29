@@ -14,6 +14,8 @@ public class User
     public int CurrentStreak { get; set; }
     public int LongestStreak { get; set; }
     public DateOnly? LastActivityDate { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     public ICollection<Song> Songs { get; set; } = [];
     public ICollection<SongVote> SongVotes { get; set; } = [];

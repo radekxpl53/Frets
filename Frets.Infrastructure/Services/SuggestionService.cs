@@ -186,4 +186,16 @@ public class SuggestionService
         return null;
     }
 
+    public async Task<bool> DeleteAsync(Guid suggestionId, Guid userId, bool isAdmin)
+    {
+        var suggestion = await _context.VersionSuggestions
+            .FirstOrDefaultAsync(s => s.Id == suggestionId);
+
+        if (suggestion == null) return false;
+        if (suggestion.AuthorId != userId && !isAdmin) return false;
+
+        _context.VersionSuggestions.Remove(suggestion);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

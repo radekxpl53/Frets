@@ -8,13 +8,9 @@ public class VersionSuggestion
     public string? Comment { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
-
-    // Klucze obce
     public Guid VersionId { get; set; }
     public Guid AuthorId { get; set; }
     public Guid? ReviewedBy { get; set; }
-
-    // Nawigacja
     public SongVersion SongVersion { get; set; } = null!;
     public User Author { get; set; } = null!;
     public User? ReviewedByUser { get; set; }
