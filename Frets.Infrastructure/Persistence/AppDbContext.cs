@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<VersionSuggestion> VersionSuggestions => Set<VersionSuggestion>();
     public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailConfirmationToken> EmailConfirmationTokens => Set<EmailConfirmationToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -179,6 +180,15 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailConfirmationToken>(e =>
         {
             e.HasKey(x => x.Id);
             e.HasOne(x => x.User)

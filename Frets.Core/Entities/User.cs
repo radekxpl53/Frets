@@ -16,6 +16,7 @@ public class User
     public DateOnly? LastActivityDate { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    public bool EmailConfirmed { get; set; }
 
     public ICollection<Song> Songs { get; set; } = [];
     public ICollection<SongVote> SongVotes { get; set; } = [];

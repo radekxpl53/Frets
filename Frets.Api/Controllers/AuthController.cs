@@ -26,23 +26,29 @@ public class AuthController : ControllerBase
         if (user == null)
             return BadRequest("Username or email already exists.");
 
-        return Ok(new AuthResponse(
-            Token: string.Empty,
-            UserId: user.Id,
-            Username: user.Username,
-            Role: user.Role
-        ));
+        return Ok("Registration successful. Please check your email to confirm your account.");
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var result = await _authService.LoginAsync(request.Email, request.Password);
+        var (response, error) = await _authService.LoginAsync(request.Email, request.Password);
 
-        if (result == null)
-            return Unauthorized("Invalid email or password.");
+        if (error != null)
+            return Unauthorized(error);
 
-        return Ok(result);
+        return Ok(response);
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+    {
+        var success = await _authService.ConfirmEmailAsync(request.Token);
+
+        if (!success)
+            return BadRequest("Invalid or expired token.");
+
+        return Ok("Email confirmed successfully.");
     }
 
     [HttpPost("forgot-password")]

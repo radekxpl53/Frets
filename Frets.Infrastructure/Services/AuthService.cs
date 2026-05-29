@@ -37,21 +37,43 @@ public class AuthService
             Username = username,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = false
         };
 
         _context.Users.Add(user);
+
+        var token = Guid.NewGuid().ToString("N");
+        _context.EmailConfirmationTokens.Add(new Core.Entities.EmailConfirmationToken
+        {
+            Id = Guid.NewGuid(),
+            Token = token,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(1),
+            Used = false
+        });
+
         await _context.SaveChangesAsync();
+
+        var confirmLink = $"http://localhost:5173/confirm-email?token={token}";
+        await _emailService.SendAsync(
+            user.Email,
+            "Frets — Confirm your email",
+            $"<p>Welcome to Frets! Confirm your email by clicking the link below:</p><a href='{confirmLink}'>{confirmLink}</a><p>The link expires in 24 hours.</p>"
+        );
 
         return user;
     }
 
-    public async Task<AuthResponse?> LoginAsync(string email, string password)
+    public async Task<(AuthResponse? Response, string? Error)> LoginAsync(string email, string password)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            return null;
+            return (null, "Invalid email or password.");
+
+        if (!user.EmailConfirmed)
+            return (null, "Please confirm your email before logging in.");
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -95,12 +117,12 @@ public class AuthService
 
         var token = GenerateToken(user);
 
-        return new AuthResponse(
+        return (new AuthResponse(
             Token: token,
             UserId: user.Id,
             Username: user.Username,
             Role: user.Role
-        );
+        ), null);
     }
 
     private string GenerateToken(User user)
@@ -130,8 +152,6 @@ public class AuthService
     }
 
     public async Task<bool> ForgotPasswordAsync(string email)
-{
-    try
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null) return false;
@@ -152,7 +172,6 @@ public class AuthService
         });
 
         await _context.SaveChangesAsync();
-        Console.WriteLine($"Token saved: {token}");
 
         var resetLink = $"http://localhost:5173/reset-password?token={token}";
         await _emailService.SendAsync(
@@ -161,15 +180,8 @@ public class AuthService
             $"<p>Click the link below to reset your password:</p><a href='{resetLink}'>{resetLink}</a><p>The link expires in 1 hour.</p>"
         );
 
-        Console.WriteLine("Email sent successfully");
         return true;
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error: {ex.Message}");
-        return false;
-    }
-}
 
     public async Task<bool> ResetPasswordAsync(string token, string newPassword)
     {
@@ -182,6 +194,22 @@ public class AuthService
 
         resetToken.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         resetToken.Used = true;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> ConfirmEmailAsync(string token)
+    {
+        var confirmToken = await _context.EmailConfirmationTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == token && !t.Used);
+
+        if (confirmToken == null) return false;
+        if (confirmToken.ExpiresAt < DateTime.UtcNow) return false;
+
+        confirmToken.User.EmailConfirmed = true;
+        confirmToken.Used = true;
 
         await _context.SaveChangesAsync();
         return true;
