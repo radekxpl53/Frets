@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@techies23/react-chords": "^1.0.7",
+    "@tombatossals/chords-db": "^0.5.1",
     "axios": "^1.16.1",
     "bootstrap": "^5.3.8",
     "react": "^19.2.6",

@@ -74,6 +74,15 @@ public class SongService
         );
     }
 
+    public async Task<Song?> GetBySlugInternalAsync(string artistSlug, string titleSlug)
+    {
+        return await _context.Songs
+            .Include(s => s.Artist)
+            .FirstOrDefaultAsync(s =>
+                s.Artist.Slug == artistSlug &&
+                s.TitleSlug == titleSlug);
+    }
+
     public async Task<SongResponse?> CreateAsync(CreateSongRequest request, Guid authorId)
     {
         var artistSlug = SlugHelper.Generate(request.Artist);

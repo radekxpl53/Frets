@@ -75,10 +75,13 @@ public class SongsController : ControllerBase
         return Ok("Vote registered.");
     }
 
-    [HttpGet("{id}/versions")]
-    public async Task<IActionResult> GetVersions(Guid id)
+    [HttpGet("{artistSlug}/{titleSlug}/versions")]
+    public async Task<IActionResult> GetVersions(string artistSlug, string titleSlug)
     {
-        var versions = await _songService.GetVersionsAsync(id);
+        var song = await _songService.GetBySlugInternalAsync(artistSlug, titleSlug);
+        if (song == null) return NotFound();
+
+        var versions = await _songService.GetVersionsAsync(song.Id);
         return Ok(versions);
     }
 
