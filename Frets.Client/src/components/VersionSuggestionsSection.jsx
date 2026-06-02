@@ -35,7 +35,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
     const loadChords = async () => {
       try {
         const res = await api.get("/chords");
-        setAllChords((res.data ?? []).map((chord) => `${chord.key}${chord.suffix}`));
+        setAllChords(res.data ?? []);
       } catch {
         setAllChords([]);
       }

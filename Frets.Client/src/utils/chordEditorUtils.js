@@ -1,5 +1,8 @@
 export function createChordSet(allChords) {
-  return new Set(allChords.map((chord) => chord.toLowerCase()));
+  return new Set(allChords.map((chord) => {
+    if (typeof chord === "string") return chord.toLowerCase();
+    return `${chord.key}${chord.suffix}`.toLowerCase();
+  }));
 }
 
 export function isLikelyChordToken(token, chordSet) {
@@ -7,7 +10,7 @@ export function isLikelyChordToken(token, chordSet) {
   const cleaned = token.trim().replace(/[()[\]{},.;:!?'"`]/g, "");
   if (!cleaned) return false;
   if (chordSet.has(cleaned.toLowerCase())) return true;
-  return /^[A-H](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\/[A-H](?:#|b)?)?$/i.test(cleaned);
+  return /^[A-H](?:#|b)?(/i.test(cleaned) || /^[A-H](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\/[A-H](?:#|b)?)?$/i.test(cleaned);
 }
 
 function splitToTokens(line) {
@@ -90,7 +93,8 @@ export function getChordAutocompleteState(chordEditorText, cursorPos, allChords)
   if (!token) return { token: "", tokenStart: -1, suggestions: [] };
 
   const generatedBasic = ["A", "Am", "B", "Bm", "C", "Cm", "D", "Dm", "E", "Em", "F", "Fm", "G", "Gm"];
-  const source = Array.from(new Set([...allChords, ...generatedBasic]));
+  const chordNames = allChords.map((chord) => typeof chord === "string" ? chord : `${chord.key}${chord.suffix}`);
+  const source = Array.from(new Set([...chordNames, ...generatedBasic]));
   const exactMatch = source.some((chord) => chord.toLowerCase() === token.toLowerCase());
   const rootToken = token.match(/^[A-Ha-h](?:#|b)?/)?.[0] ?? token;
   const queryToken = exactMatch ? rootToken : token;
@@ -141,10 +145,27 @@ export function buildHighlightedEditorHtml(chordEditorText, chordSet) {
 
 export function buildChordJsonFromEditorText(chordEditorText, allChords) {
   const chordSet = createChordSet(allChords);
-  const lines = parseChordEditorText(chordEditorText, chordSet).map((line) => ({
-    lyrics: line.lyrics,
-    chords: line.chords,
-  }));
+  const parsed = parseChordEditorText(chordEditorText, chordSet);
+
+  const lines = parsed.map((line) => {
+    const resolvedChords = line.chords.map((c) => {
+      const matched = allChords.find((dbChord) => {
+        if (typeof dbChord === "string") return false;
+        const name = `${dbChord.key}${dbChord.suffix}`.toLowerCase();
+        return name === c.chord.toLowerCase();
+      });
+      return {
+        chord: c.chord,
+        chordId: matched ? matched.id : null,
+        offset: c.offset,
+      };
+    });
+
+    return {
+      lyrics: line.lyrics,
+      chords: resolvedChords,
+    };
+  });
 
   return JSON.stringify(
     {

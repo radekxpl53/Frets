@@ -59,7 +59,7 @@ function AddSong() {
         });
         setCategories(sortedCategories);
         setTunings(metaRes.data.tunings ?? []);
-        setAllChords((chordsRes.data ?? []).map((chord) => `${chord.key}${chord.suffix}`));
+        setAllChords(chordsRes.data ?? []);
 
         if (sortedCategories.length > 0) {
           const fallbackCategory =

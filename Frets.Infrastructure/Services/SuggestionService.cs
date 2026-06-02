@@ -243,6 +243,9 @@ public class SuggestionService
         var suggestion = await _context.VersionSuggestions.FindAsync(suggestionId);
         if (suggestion == null) return ("Suggestion not found.", null);
 
+        if (suggestion.AuthorId == userId)
+            return ("You cannot vote on your own suggestion.", null);
+
         if (suggestion.Status != "pending")
             return ("Suggestion is not open for voting.", null);
 
