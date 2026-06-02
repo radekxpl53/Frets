@@ -16,9 +16,17 @@ public class ArtistService
         _imageService = imageService;
     }
 
-    public async Task<List<ArtistResponse>> GetAllAsync()
+    public async Task<List<ArtistResponse>> GetAllAsync(string? search = null, int limit = 10)
     {
-        var artists = await _context.Artists
+        var query = _context.Artists.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(a => a.Name.ToLower().Contains(term));
+        }
+
+        var ordered = query
             .Select(a => new
             {
                 a.Id,
@@ -27,7 +35,11 @@ public class ArtistService
                 SongCount = a.Songs.Count(s => s.Status == "approved"),
                 ImagePath = a.ArtistImage != null ? a.ArtistImage.Image.StoragePath : null,
             })
-            .OrderBy(a => a.Name)
+            .OrderBy(a => a.Name);
+
+        var artists = await (string.IsNullOrWhiteSpace(search)
+            ? ordered
+            : ordered.Take(limit))
             .ToListAsync();
 
         return artists.Select(a => new ArtistResponse(

@@ -45,7 +45,7 @@ function Artists() {
             <Col key={artist.id} sm={6} md={4} lg={3} className="mb-4">
               <Card className="h-100 shadow-sm artist-tile">
                 <Card.Body className="text-center d-flex flex-column align-items-center position-relative">
-                  <EntityAvatar imageUrl={artist.imageUrl} variant="artist" size={88} className="mb-3" />
+                  <EntityAvatar imageUrl={artist.imageUrl} size={88} className="mb-3" />
                   <Card.Title className="fs-6 mb-1">
                     <Link
                       to={`/artists/${artist.slug || slugify(artist.name)}`}

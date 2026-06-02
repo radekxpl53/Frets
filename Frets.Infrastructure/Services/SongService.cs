@@ -56,6 +56,19 @@ public class SongService
             .ToListAsync();
     }
 
+    public async Task<List<string>> SuggestTitlesAsync(string search, int limit = 10)
+    {
+        var term = search.Trim().ToLower();
+
+        return await _context.Songs
+            .Where(s => !s.IsDeleted && s.Title.ToLower().Contains(term))
+            .Select(s => s.Title)
+            .Distinct()
+            .OrderBy(t => t)
+            .Take(limit)
+            .ToListAsync();
+    }
+
     public async Task<List<SongResponse>> GetDraftSongsAsync(string? genre, string? artist, string? search)
     {
         var query = _context.Songs
@@ -119,6 +132,8 @@ public class SongService
 
         if (song == null) return null;
 
+        var artistImageUrl = await _imageService.ResolveArtistImageUrlAsync(song.ArtistId);
+
         return new SongResponse(
             song.Id,
             song.Title,
@@ -126,7 +141,10 @@ public class SongService
             song.Category != null ? song.Category.Name : song.Genre,
             song.Status,
             song.Author.Username,
-            song.SubmittedAt
+            song.SubmittedAt,
+            ArtistSlug: song.Artist.Slug,
+            ArtistImageUrl: artistImageUrl,
+            YouTubeUrl: song.YouTubeUrl
         );
     }
 
@@ -208,14 +226,23 @@ public class SongService
             .FirstOrDefaultAsync(c => c.Id == request.CategoryId && c.IsActive);
         if (category == null) return null;
 
-        var exists = await _context.Songs.AnyAsync(s =>
-            s.ArtistId == artist.Id &&
-            s.TitleSlug == titleSlug);
-
-        if (exists) return null;
-
         var author = await _context.Users.FindAsync(authorId);
         if (author == null) return null;
+
+        var existingSong = await _context.Songs
+            .Include(s => s.Artist)
+            .FirstOrDefaultAsync(s =>
+                s.ArtistId == artist.Id &&
+                s.TitleSlug == titleSlug &&
+                !s.IsDeleted);
+
+        if (existingSong != null)
+        {
+            if (request.Version == null)
+                return null;
+
+            return await AddVersionToExistingSongAsync(existingSong, request.Version, author);
+        }
 
         var song = new Song
         {
@@ -226,7 +253,8 @@ public class SongService
             Genre = category.Name,
             CategoryId = category.Id,
             AuthorId = authorId,
-            Status = "draft"
+            Status = "draft",
+            YouTubeUrl = string.IsNullOrWhiteSpace(request.YouTubeUrl) ? null : request.YouTubeUrl.Trim(),
         };
 
         _context.Songs.Add(song);
@@ -289,6 +317,31 @@ public class SongService
             author.Username,
             song.SubmittedAt
         );
+    }
+
+    private async Task<SongResponse?> AddVersionToExistingSongAsync(
+        Song existingSong,
+        CreateSongVersionRequest versionRequest,
+        User author)
+    {
+        var version = await CreateVersionAsync(existingSong.Id, versionRequest, author.Id);
+        if (version == null) return null;
+
+        string? genre = existingSong.Genre;
+        if (existingSong.CategoryId.HasValue)
+        {
+            var category = await _context.Categories.FindAsync(existingSong.CategoryId.Value);
+            genre = category?.Name ?? genre;
+        }
+
+        return new SongResponse(
+            existingSong.Id,
+            existingSong.Title,
+            existingSong.Artist.Name,
+            genre,
+            existingSong.Status,
+            author.Username,
+            existingSong.SubmittedAt);
     }
 
     public async Task<(string? Error, VoteSummaryDto? Summary)> VoteAsync(Guid songId, Guid userId, bool isPositive)
@@ -399,10 +452,12 @@ public class SongService
         var song = await _context.Songs.FindAsync(songId);
         if (song == null) return null;
 
-        if (song.AuthorId != authorId) return null;
-
         var validTypes = new[] { "chords", "tab" };
         if (!validTypes.Contains(request.VersionType)) return null;
+
+        var versionTypeExists = await _context.SongVersions
+            .AnyAsync(v => v.SongId == songId && v.VersionType == request.VersionType);
+        if (versionTypeExists) return null;
 
         var version = new SongVersion
         {

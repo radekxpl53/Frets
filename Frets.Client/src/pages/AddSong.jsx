@@ -5,6 +5,8 @@ import api from "../api/client";
 import ChordLyricsEditor from "../components/ChordLyricsEditor";
 import VersionContentEditor from "../components/VersionContentEditor";
 import { buildChordJsonFromEditorText } from "../utils/chordEditorUtils";
+import slugify from "../utils/slugify";
+import SongSuggestField from "../components/SongSuggestField";
 
 const DRAFT_KEY = "frets:add-song:draft:v1";
 
@@ -13,6 +15,7 @@ function AddSong() {
 
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [youTubeUrl, setYouTubeUrl] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [versionType, setVersionType] = useState("chords");
   const [tuningId, setTuningId] = useState("");
@@ -76,6 +79,7 @@ function AddSong() {
       const draft = JSON.parse(raw);
       setTitle(draft.title ?? "");
       setArtist(draft.artist ?? "");
+      setYouTubeUrl(draft.youTubeUrl ?? "");
       setVersionType(draft.versionType ?? "chords");
       setSongKey(draft.songKey ?? "");
       setCapo(draft.capo ?? 0);
@@ -90,6 +94,7 @@ function AddSong() {
     const draft = {
       title,
       artist,
+      youTubeUrl,
       versionType,
       songKey,
       capo,
@@ -97,12 +102,23 @@ function AddSong() {
       chordEditorText,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [title, artist, versionType, songKey, capo, tabContent, chordEditorText]);
+  }, [title, artist, youTubeUrl, versionType, songKey, capo, tabContent, chordEditorText]);
+
+  const handleSuggestPick = (item, field) => {
+    if (field === "title" && item.title) {
+      setTitle(item.title);
+      return;
+    }
+    if (field === "artist" && item.artist) {
+      setArtist(item.artist);
+    }
+  };
 
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
     setTitle("");
     setArtist("");
+    setYouTubeUrl("");
     setSongKey("");
     setCapo(0);
     setTabContent("");
@@ -124,10 +140,17 @@ function AddSong() {
       return;
     }
 
+    if (versionType === "tab" && !tabContent.trim()) {
+      setError("Wpisz treść tabulatury.");
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       title,
       artist,
       categoryId,
+      youTubeUrl: youTubeUrl.trim() || null,
       version: content.trim()
         ? {
             versionType,
@@ -140,9 +163,11 @@ function AddSong() {
     };
 
     try {
-      await api.post("/songs", payload);
+      const res = await api.post("/songs", payload);
       localStorage.removeItem(DRAFT_KEY);
-      navigate("/");
+      const status = res.data?.status?.toLowerCase();
+      const songPath = `${slugify(artist)}/${slugify(title)}`;
+      navigate(status === "approved" ? `/songs/${songPath}` : `/drafts/${songPath}`);
     } catch (err) {
       const data = err.response?.data;
       setError(typeof data === "string" ? data : "Nie udało się dodać piosenki.");
@@ -168,23 +193,25 @@ function AddSong() {
           {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Tytuł</Form.Label>
-              <Form.Control
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </Form.Group>
+            <SongSuggestField
+              label="Tytuł"
+              field="title"
+              value={title}
+              onChange={setTitle}
+              onPick={handleSuggestPick}
+              required
+              placeholder="Tytuł"
+            />
 
-            <Form.Group className="mb-3">
-              <Form.Label>Artysta</Form.Label>
-              <Form.Control
-                value={artist}
-                onChange={(e) => setArtist(e.target.value)}
-                required
-              />
-            </Form.Group>
+            <SongSuggestField
+              label="Wykonawca"
+              field="artist"
+              value={artist}
+              onChange={setArtist}
+              onPick={handleSuggestPick}
+              required
+              placeholder="Wykonawca"
+            />
 
             <Form.Group className="mb-3">
               <Form.Label>Kategoria</Form.Label>
@@ -195,6 +222,16 @@ function AddSong() {
                   </option>
                 ))}
               </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Link do YouTube (opcjonalnie)</Form.Label>
+              <Form.Control
+                type="url"
+                value={youTubeUrl}
+                onChange={(e) => setYouTubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
             </Form.Group>
 
             <hr />

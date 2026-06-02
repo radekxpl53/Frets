@@ -53,7 +53,7 @@ function ArtistPage() {
         <Card.Body>
           <Row className="align-items-center g-3">
             <Col xs="auto">
-              <EntityAvatar imageUrl={artist.imageUrl} variant="artist" size={120} />
+              <EntityAvatar imageUrl={artist.imageUrl} size={120} />
             </Col>
             <Col>
               <h2 className="mb-1">{artist.name}</h2>

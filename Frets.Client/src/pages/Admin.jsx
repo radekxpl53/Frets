@@ -204,7 +204,7 @@ function Admin() {
             <Col md={6} lg={4} key={artist.id} className="mb-3">
               <Card>
                 <Card.Body className="text-center">
-                  <EntityAvatar imageUrl={artist.imageUrl} variant="artist" size={72} className="mb-2" />
+                  <EntityAvatar imageUrl={artist.imageUrl} size={72} className="mb-2" />
                   <Card.Title className="fs-6">{artist.name}</Card.Title>
                   <Card.Text className="text-muted small">{artist.songCount} piosenek</Card.Text>
                   <Form.Group className="mt-2">

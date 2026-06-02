@@ -15,9 +15,9 @@ public class ArtistsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int limit = 10)
     {
-        var artists = await _artistService.GetAllAsync();
+        var artists = await _artistService.GetAllAsync(search, limit);
         return Ok(artists);
     }
 
