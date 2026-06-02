@@ -28,6 +28,13 @@ public class SongsController : ControllerBase
         return Ok(songs);
     }
 
+    [HttpGet("meta")]
+    public async Task<IActionResult> GetMetadata()
+    {
+        var metadata = await _songService.GetMetadataAsync();
+        return Ok(metadata);
+    }
+
     [HttpGet("{artistSlug}/{titleSlug}")]
     public async Task<IActionResult> GetBySlug(string artistSlug, string titleSlug)
     {

@@ -13,7 +13,9 @@ public class Song
     public Guid? StatusChangedBy { get; set; }
 
     public Guid ArtistId { get; set; }
+    public Guid? CategoryId { get; set; }
     public Artist Artist { get; set; } = null!;
+    public Category? Category { get; set; }
     public string TitleSlug { get; set; } = string.Empty;
 
     public User Author { get; set; } = null!;

@@ -24,11 +24,14 @@ public class SongService
         var query = _context.Songs
             .Where(s => s.Status == "approved")
             .Include(s => s.Artist)
+            .Include(s => s.Category)
             .Include(s => s.Author)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(genre))
-            query = query.Where(s => s.Genre != null && s.Genre.ToLower() == genre.ToLower());
+            query = query.Where(s =>
+                (s.Category != null && s.Category.Name.ToLower() == genre.ToLower()) ||
+                (s.Genre != null && s.Genre.ToLower() == genre.ToLower()));
 
         if (!string.IsNullOrEmpty(artist))
             query = query.Where(s => s.Artist.Slug == SlugHelper.Generate(artist));
@@ -43,7 +46,7 @@ public class SongService
                 s.Id,
                 s.Title,
                 s.Artist.Name,
-                s.Genre,
+                s.Category != null ? s.Category.Name : s.Genre,
                 s.Status,
                 s.Author.Username,
                 s.SubmittedAt
@@ -55,6 +58,7 @@ public class SongService
     {
         var song = await _context.Songs
             .Include(s => s.Artist)
+            .Include(s => s.Category)
             .Include(s => s.Author)
             .FirstOrDefaultAsync(s =>
                 s.Artist.Slug == artistSlug &&
@@ -67,7 +71,7 @@ public class SongService
             song.Id,
             song.Title,
             song.Artist.Name,
-            song.Genre,
+            song.Category != null ? song.Category.Name : song.Genre,
             song.Status,
             song.Author.Username,
             song.SubmittedAt
@@ -101,6 +105,9 @@ public class SongService
         }
 
         var titleSlug = SlugHelper.Generate(request.Title);
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == request.CategoryId && c.IsActive);
+        if (category == null) return null;
 
         var exists = await _context.Songs.AnyAsync(s =>
             s.ArtistId == artist.Id &&
@@ -117,7 +124,8 @@ public class SongService
             Title = request.Title,
             TitleSlug = titleSlug,
             ArtistId = artist.Id,
-            Genre = request.Genre,
+            Genre = category.Name,
+            CategoryId = category.Id,
             AuthorId = authorId,
             Status = "draft"
         };
@@ -131,11 +139,16 @@ public class SongService
                 Id = Guid.NewGuid(),
                 SongId = song.Id,
                 VersionType = request.Version.VersionType,
-                Tuning = request.Version.Tuning,
+                TuningId = request.Version.TuningId,
                 Key = request.Version.Key,
                 Capo = request.Version.Capo,
                 CreatedAt = DateTime.UtcNow
             };
+
+            var tuning = await _context.Tunings
+                .FirstOrDefaultAsync(t => t.Id == request.Version.TuningId && t.IsActive);
+            if (tuning == null) return null;
+            version.Tuning = tuning.Code;
 
             _context.SongVersions.Add(version);
 
@@ -169,7 +182,7 @@ public class SongService
             song.Id,
             song.Title,
             artist.Name,
-            song.Genre,
+            category.Name,
             song.Status,
             author.Username,
             song.SubmittedAt
@@ -278,11 +291,16 @@ public class SongService
             Id = Guid.NewGuid(),
             SongId = songId,
             VersionType = request.VersionType,
-            Tuning = request.Tuning,
+            TuningId = request.TuningId,
             Key = request.Key,
             Capo = request.Capo,
             CreatedAt = DateTime.UtcNow
         };
+
+        var tuning = await _context.Tunings
+            .FirstOrDefaultAsync(t => t.Id == request.TuningId && t.IsActive);
+        if (tuning == null) return null;
+        version.Tuning = tuning.Code;
 
         _context.SongVersions.Add(version);
 
@@ -312,7 +330,7 @@ public class SongService
         return new SongVersionResponse(
             version.Id,
             version.VersionType,
-            version.Tuning,
+                tuning.Name,
             version.Key,
             version.Capo,
             request.Content
@@ -322,6 +340,7 @@ public class SongService
     public async Task<List<SongVersionResponse>> GetVersionsAsync(Guid songId)
     {
         var versions = await _context.SongVersions
+            .Include(v => v.TuningEntity)
             .Where(v => v.SongId == songId)
             .ToListAsync();
 
@@ -349,7 +368,7 @@ public class SongService
             result.Add(new SongVersionResponse(
                 version.Id,
                 version.VersionType,
-                version.Tuning,
+                version.TuningEntity?.Name ?? version.Tuning,
                 version.Key,
                 version.Capo,
                 content
@@ -363,6 +382,7 @@ public class SongService
     {
         var song = await _context.Songs
             .Include(s => s.Artist)
+            .Include(s => s.Category)
             .Include(s => s.Author)
             .FirstOrDefaultAsync(s =>
                 s.Artist.Slug == artistSlug &&
@@ -378,7 +398,12 @@ public class SongService
         }
 
         if (!string.IsNullOrEmpty(request.Genre))
+        {
             song.Genre = request.Genre;
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Genre.ToLower() && c.IsActive);
+            song.CategoryId = category?.Id;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -386,7 +411,7 @@ public class SongService
             song.Id,
             song.Title,
             song.Artist.Name,
-            song.Genre,
+            song.Category != null ? song.Category.Name : song.Genre,
             song.Status,
             song.Author.Username,
             song.SubmittedAt
@@ -415,13 +440,19 @@ public class SongService
     {
         var version = await _context.SongVersions
             .Include(v => v.Song)
+            .Include(v => v.TuningEntity)
             .FirstOrDefaultAsync(v => v.Id == versionId);
 
         if (version == null) return null;
         if (version.Song.AuthorId != userId) return null;
 
         if (!string.IsNullOrEmpty(request.Tuning))
+        {
             version.Tuning = request.Tuning;
+            var tuning = await _context.Tunings
+                .FirstOrDefaultAsync(t => t.Name.ToLower() == request.Tuning.ToLower() && t.IsActive);
+            version.TuningId = tuning?.Id;
+        }
 
         if (request.Key != null)
             version.Key = request.Key;
@@ -464,7 +495,7 @@ public class SongService
         return new SongVersionResponse(
             version.Id,
             version.VersionType,
-            version.Tuning,
+            version.TuningEntity?.Name ?? version.Tuning,
             version.Key,
             version.Capo,
             content
@@ -489,6 +520,7 @@ public class SongService
     {
         var query = _context.Songs
             .Include(s => s.Artist)
+            .Include(s => s.Category)
             .Include(s => s.Author)
             .AsQueryable();
 
@@ -500,11 +532,29 @@ public class SongService
                 s.Id,
                 s.Title,
                 s.Artist.Name,
-                s.Genre,
+                s.Category != null ? s.Category.Name : s.Genre,
                 s.Status,
                 s.Author.Username,
                 s.SubmittedAt
             ))
             .ToListAsync();
+    }
+
+    public async Task<SongMetadataResponse> GetMetadataAsync()
+    {
+        var categories = await _context.Categories
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Slug == "inne" ? 1 : 0)
+            .ThenBy(c => c.Name)
+            .Select(c => new SongCategoryResponse(c.Id, c.Name, c.Slug))
+            .ToListAsync();
+
+        var tunings = await _context.Tunings
+            .Where(t => t.IsActive)
+            .OrderBy(t => t.Name)
+            .Select(t => new SongTuningResponse(t.Id, t.Name, t.Code))
+            .ToListAsync();
+
+        return new SongMetadataResponse(categories, tunings);
     }
 }

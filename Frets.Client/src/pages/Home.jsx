@@ -44,6 +44,12 @@ function Home() {
     <Container className="mt-4">
       <h2 className="mb-4">Piosenki</h2>
 
+      <div className="mb-3">
+        <Button as={Link} to="/songs/add">
+          Dodaj piosenkę
+        </Button>
+      </div>
+
       <Form onSubmit={handleSearch} className="mb-4">
         <Row>
           <Col>

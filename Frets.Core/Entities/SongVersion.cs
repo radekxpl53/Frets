@@ -8,10 +8,12 @@ public class SongVersion
     public string? Key { get; set; }
     public int Capo { get; set; }
     public DateTime CreatedAt { get; set; }
+    public Guid? TuningId { get; set; }
 
     public Guid SongId { get; set; }
 
     public Song Song { get; set; } = null!;
+    public Tuning? TuningEntity { get; set; }
     public VersionChords? VersionChords { get; set; }
     public VersionTab? VersionTab { get; set; }
     public ICollection<VersionChordIndex> ChordIndex { get; set; } = [];
