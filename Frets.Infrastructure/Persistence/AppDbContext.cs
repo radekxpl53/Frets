@@ -25,6 +25,9 @@ public class AppDbContext : DbContext
     public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<EmailConfirmationToken> EmailConfirmationTokens => Set<EmailConfirmationToken>();
+    public DbSet<Image> Images => Set<Image>();
+    public DbSet<ArtistImage> ArtistImages => Set<ArtistImage>();
+    public DbSet<UserProfileImage> UserProfileImages => Set<UserProfileImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +222,40 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Image>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.SystemKey).IsUnique();
+        });
+
+        modelBuilder.Entity<ArtistImage>(e =>
+        {
+            e.HasKey(x => x.ArtistId);
+            e.HasIndex(x => x.ImageId);
+            e.HasOne(x => x.Artist)
+                .WithOne(x => x.ArtistImage)
+                .HasForeignKey<ArtistImage>(x => x.ArtistId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Image)
+                .WithMany(x => x.ArtistImages)
+                .HasForeignKey(x => x.ImageId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserProfileImage>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.HasIndex(x => x.ImageId);
+            e.HasOne(x => x.User)
+                .WithOne(x => x.ProfileImage)
+                .HasForeignKey<UserProfileImage>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Image)
+                .WithMany(x => x.UserProfileImages)
+                .HasForeignKey(x => x.ImageId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

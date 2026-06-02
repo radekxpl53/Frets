@@ -1,38 +1,54 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, Nav, Row, Spinner } from "react-bootstrap";
 import api from "../api/client";
+import EntityAvatar from "../components/EntityAvatar";
 import { formatVoteCounts } from "../components/VotePanel";
 import slugify from "../utils/slugify";
 import { getApiError, getSongId } from "../utils/apiError";
 
 function Admin() {
   const navigate = useNavigate();
+  const [tab, setTab] = useState("songs");
   const [songs, setSongs] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
+  const [uploadingArtistId, setUploadingArtistId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
 
   const loadSongs = async (status) => {
+    const params = status ? { status } : {};
+    const res = await api.get("/admin/songs", { params });
+    setSongs(res.data ?? []);
+  };
+
+  const loadArtists = async () => {
+    const res = await api.get("/admin/artists");
+    setArtists(res.data ?? []);
+  };
+
+  const loadData = async () => {
     setLoading(true);
     setError("");
     try {
-      const params = status ? { status } : {};
-      const res = await api.get("/admin/songs", { params });
-      setSongs(res.data ?? []);
+      if (tab === "songs") {
+        await loadSongs(statusFilter);
+      } else {
+        await loadArtists();
+      }
     } catch (err) {
-      setError(typeof err.response?.data === "string" ? err.response.data : "Nie udało się pobrać listy piosenek.");
-      setSongs([]);
+      setError(getApiError(err, "Nie udało się pobrać danych."));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSongs(statusFilter);
-  }, [statusFilter]);
+    loadData();
+  }, [tab, statusFilter]);
 
   const statusVariant = (status) => {
     if (status === "pending") return "warning";
@@ -67,20 +83,55 @@ function Admin() {
     }
   };
 
+  const handleArtistImage = async (artistId, file) => {
+    if (!file) return;
+    setMessage("");
+    setError("");
+    setUploadingArtistId(artistId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await api.post(`/admin/artists/${artistId}/image`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setMessage("Zaktualizowano zdjęcie artysty.");
+      await loadArtists();
+    } catch (err) {
+      setError(getApiError(err, "Nie udało się wgrać zdjęcia."));
+    } finally {
+      setUploadingArtistId(null);
+    }
+  };
+
   return (
     <Container className="mt-4">
       <h2 className="mb-3">Panel administratora</h2>
 
-      <Form.Group className="mb-3" style={{ maxWidth: "280px" }}>
-        <Form.Label>Filtr statusu</Form.Label>
-        <Form.Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">Wszystkie</option>
-          <option value="draft">draft</option>
-          <option value="pending">pending</option>
-          <option value="approved">approved</option>
-          <option value="rejected">rejected</option>
-        </Form.Select>
-      </Form.Group>
+      <Nav variant="tabs" className="mb-3">
+        <Nav.Item>
+          <Nav.Link active={tab === "songs"} onClick={() => setTab("songs")}>
+            Piosenki
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link active={tab === "artists"} onClick={() => setTab("artists")}>
+            Artyści (zdjęcia)
+          </Nav.Link>
+        </Nav.Item>
+      </Nav>
+
+      {tab === "songs" && (
+        <Form.Group className="mb-3" style={{ maxWidth: "280px" }}>
+          <Form.Label>Filtr statusu</Form.Label>
+          <Form.Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Wszystkie</option>
+            <option value="draft">draft</option>
+            <option value="pending">pending</option>
+            <option value="approved">approved</option>
+            <option value="rejected">rejected</option>
+          </Form.Select>
+        </Form.Group>
+      )}
 
       {error && <Alert variant="danger">{error}</Alert>}
       {message && <Alert variant="success">{message}</Alert>}
@@ -89,55 +140,95 @@ function Admin() {
         <div className="text-center mt-5">
           <Spinner animation="border" />
         </div>
-      ) : songs.length === 0 ? (
-        <p className="text-muted">Brak piosenek w tym filtrze.</p>
+      ) : tab === "songs" ? (
+        songs.length === 0 ? (
+          <p className="text-muted">Brak piosenek w tym filtrze.</p>
+        ) : (
+          <Row>
+            {songs.map((song) => (
+              <Col md={6} lg={4} key={song.id} className="mb-3">
+                <Card>
+                  <Card.Body>
+                    <Card.Title className="fs-6">{song.title}</Card.Title>
+                    <Card.Subtitle className="text-muted mb-2">{song.artist}</Card.Subtitle>
+                    <div className="d-flex gap-2 mb-2 flex-wrap">
+                      <Badge bg={statusVariant(song.status)}>{song.status}</Badge>
+                      <Badge bg="light" text="dark" className="fw-normal">
+                        {formatVoteCounts(song.positiveVoteWeight, song.negativeVoteWeight)}
+                      </Badge>
+                    </div>
+                    <small className="text-muted d-block mb-3">Autor: {song.authorUsername}</small>
+                    <div className="d-flex gap-2 flex-wrap">
+                      {(song.status === "draft" || song.status === "pending" || !song.status) && (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="success"
+                            disabled={actionId === getSongId(song)}
+                            onClick={() => handleAction(song, "approve")}
+                          >
+                            Zatwierdź
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline-danger"
+                            disabled={actionId === getSongId(song)}
+                            onClick={() => handleAction(song, "reject")}
+                          >
+                            Odrzuć
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        as={Link}
+                        to={`/drafts/${slugify(song.artist)}/${slugify(song.title)}`}
+                      >
+                        Otwórz
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )
+      ) : artists.length === 0 ? (
+        <p className="text-muted">Brak artystów.</p>
       ) : (
         <Row>
-          {songs.map((song) => (
-            <Col md={6} lg={4} key={song.id} className="mb-3">
+          {artists.map((artist) => (
+            <Col md={6} lg={4} key={artist.id} className="mb-3">
               <Card>
-                <Card.Body>
-                  <Card.Title className="fs-6">{song.title}</Card.Title>
-                  <Card.Subtitle className="text-muted mb-2">{song.artist}</Card.Subtitle>
-                  <div className="d-flex gap-2 mb-2 flex-wrap">
-                    <Badge bg={statusVariant(song.status)}>{song.status}</Badge>
-                    <Badge bg="light" text="dark" className="fw-normal">
-                      {formatVoteCounts(song.positiveVoteWeight, song.negativeVoteWeight)}
-                    </Badge>
-                  </div>
-                  <small className="text-muted d-block mb-3">Autor: {song.authorUsername}</small>
-                  <div className="d-flex gap-2 flex-wrap">
-                    {(song.status === "draft" || song.status === "pending" || !song.status) && (
-                      <>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="success"
-                          disabled={actionId === getSongId(song)}
-                          onClick={() => handleAction(song, "approve")}
-                        >
-                          Zatwierdź
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline-danger"
-                          disabled={actionId === getSongId(song)}
-                          onClick={() => handleAction(song, "reject")}
-                        >
-                          Odrzuć
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      as={Link}
-                      to={`/drafts/${slugify(song.artist)}/${slugify(song.title)}`}
-                    >
-                      Otwórz
-                    </Button>
-                  </div>
+                <Card.Body className="text-center">
+                  <EntityAvatar imageUrl={artist.imageUrl} variant="artist" size={72} className="mb-2" />
+                  <Card.Title className="fs-6">{artist.name}</Card.Title>
+                  <Card.Text className="text-muted small">{artist.songCount} piosenek</Card.Text>
+                  <Form.Group className="mt-2">
+                    <Form.Label className="small">Zdjęcie artysty (max 2 MB)</Form.Label>
+                    <Form.Control
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={uploadingArtistId === artist.id}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleArtistImage(artist.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </Form.Group>
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    className="mt-2"
+                    as={Link}
+                    to={`/artists/${artist.slug}`}
+                  >
+                    Zobacz profil
+                  </Button>
                 </Card.Body>
               </Card>
             </Col>

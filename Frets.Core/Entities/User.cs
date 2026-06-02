@@ -25,4 +25,5 @@ public class User
 
     public ICollection<VersionSuggestion> VersionSuggestions { get; set; } = [];
     public ICollection<SuggestionVote> SuggestionVotes { get; set; } = [];
+    public UserProfileImage? ProfileImage { get; set; }
 }

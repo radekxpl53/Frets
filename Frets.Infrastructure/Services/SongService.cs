@@ -11,12 +11,14 @@ public class SongService
     private readonly AppDbContext _context;
     private readonly ChordIndexer _chordIndexer;
     private readonly XpService _xpService;
+    private readonly ImageService _imageService;
 
-    public SongService(AppDbContext context, ChordIndexer chordIndexer, XpService xpService)
+    public SongService(AppDbContext context, ChordIndexer chordIndexer, XpService xpService, ImageService imageService)
     {
         _context = context;
         _chordIndexer = chordIndexer;
         _xpService = xpService;
+        _imageService = imageService;
     }
 
     public async Task<List<SongResponse>> GetApprovedSongsAsync(string? genre, string? artist, string? search)
@@ -188,6 +190,7 @@ public class SongService
         var artist = await _context.Artists
             .FirstOrDefaultAsync(a => a.Slug == artistSlug);
 
+        var createdNewArtist = false;
         if (artist == null)
         {
             artist = new Artist
@@ -197,6 +200,7 @@ public class SongService
                 Slug = artistSlug
             };
             _context.Artists.Add(artist);
+            createdNewArtist = true;
         }
 
         var titleSlug = SlugHelper.Generate(request.Title);
@@ -272,6 +276,9 @@ public class SongService
         await _xpService.AddXpAsync(authorId, "song_added", XpService.XpValues.SongAdded, new { songId = song.Id });
 
         await _context.SaveChangesAsync();
+
+        if (createdNewArtist)
+            await _imageService.AssignDefaultArtistImageAsync(artist.Id);
 
         return new SongResponse(
             song.Id,

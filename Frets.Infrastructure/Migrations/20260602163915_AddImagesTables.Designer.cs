@@ -3,6 +3,7 @@ using System;
 using Frets.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Frets.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260602163915_AddImagesTables")]
+    partial class AddImagesTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,8 @@ namespace Frets.Infrastructure.Migrations
 
                     b.HasKey("ArtistId");
 
-                    b.HasIndex("ImageId");
+                    b.HasIndex("ImageId")
+                        .IsUnique();
 
                     b.ToTable("ArtistImages");
                 });
@@ -454,7 +458,8 @@ namespace Frets.Infrastructure.Migrations
 
                     b.HasKey("UserId");
 
-                    b.HasIndex("ImageId");
+                    b.HasIndex("ImageId")
+                        .IsUnique();
 
                     b.ToTable("UserProfileImages");
                 });
@@ -635,8 +640,8 @@ namespace Frets.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Frets.Core.Entities.Image", "Image")
-                        .WithMany("ArtistImages")
-                        .HasForeignKey("ImageId")
+                        .WithOne("ArtistImage")
+                        .HasForeignKey("Frets.Core.Entities.ArtistImage", "ImageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -760,8 +765,8 @@ namespace Frets.Infrastructure.Migrations
             modelBuilder.Entity("Frets.Core.Entities.UserProfileImage", b =>
                 {
                     b.HasOne("Frets.Core.Entities.Image", "Image")
-                        .WithMany("UserProfileImages")
-                        .HasForeignKey("ImageId")
+                        .WithOne("UserProfileImage")
+                        .HasForeignKey("Frets.Core.Entities.UserProfileImage", "ImageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -893,9 +898,9 @@ namespace Frets.Infrastructure.Migrations
 
             modelBuilder.Entity("Frets.Core.Entities.Image", b =>
                 {
-                    b.Navigation("ArtistImages");
+                    b.Navigation("ArtistImage");
 
-                    b.Navigation("UserProfileImages");
+                    b.Navigation("UserProfileImage");
                 });
 
             modelBuilder.Entity("Frets.Core.Entities.Song", b =>

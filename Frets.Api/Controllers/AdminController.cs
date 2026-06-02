@@ -13,12 +13,21 @@ public class AdminController : ControllerBase
     private readonly SongService _songService;
     private readonly SuggestionService _suggestionService;
     private readonly UserService _userService;
+    private readonly ImageService _imageService;
+    private readonly ArtistService _artistService;
 
-    public AdminController(SongService songService, SuggestionService suggestionService, UserService userService)
+    public AdminController(
+        SongService songService,
+        SuggestionService suggestionService,
+        UserService userService,
+        ImageService imageService,
+        ArtistService artistService)
     {
         _songService = songService;
         _suggestionService = suggestionService;
         _userService = userService;
+        _imageService = imageService;
+        _artistService = artistService;
     }
 
     private async Task<IActionResult?> EnsureAdminAsync()
@@ -117,5 +126,37 @@ public class AdminController : ControllerBase
         var success = await _userService.DeleteUserAdminAsync(id);
         if (!success) return NotFound();
         return Ok("User deleted.");
+    }
+
+    [HttpGet("artists")]
+    public async Task<IActionResult> GetArtists()
+    {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
+        var artists = await _artistService.GetAllAsync();
+        return Ok(artists);
+    }
+
+    [HttpPost("artists/{artistId}/image")]
+    [RequestSizeLimit(2 * 1024 * 1024)]
+    public async Task<IActionResult> SetArtistImage(Guid artistId, IFormFile file)
+    {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
+        var validationError = _imageService.ValidateUpload(file);
+        if (validationError != null)
+            return BadRequest(validationError);
+
+        var upload = await _imageService.UploadAsync(file);
+        if (upload == null)
+            return BadRequest("Upload failed.");
+
+        var error = await _imageService.SetArtistImageAsync(artistId, upload.Id);
+        if (error != null)
+            return BadRequest(error);
+
+        return Ok(new { imageUrl = upload.Url });
     }
 }
