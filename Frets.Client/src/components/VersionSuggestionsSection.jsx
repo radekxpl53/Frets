@@ -10,6 +10,8 @@ import { useFormErrors } from "../hooks/useFormErrors";
 import {
   buildChordJsonFromEditorText,
   chordContentJsonToEditorText,
+  buildTabJsonFromAscii,
+  tabContentJsonToEditorText,
 } from "../utils/chordEditorUtils";
 import { validateRequired } from "../utils/validation";
 
@@ -69,7 +71,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
       setChordEditorText(chordContentJsonToEditorText(activeVersion.content));
       setSuggestedContent("");
     } else {
-      setSuggestedContent(activeVersion.content);
+      setSuggestedContent(tabContentJsonToEditorText(activeVersion.content));
       setChordEditorText("");
     }
   }, [activeVersion?.id, activeVersion?.versionType, activeVersion?.content]);
@@ -135,7 +137,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
       const content =
         activeVersion.versionType === "chords"
           ? buildChordJsonFromEditorText(chordEditorText, allChords)
-          : suggestedContent || activeVersion.content;
+          : buildTabJsonFromAscii(suggestedContent);
 
       await api.post(`/suggestions/version/${activeVersion.id}`, {
         content,

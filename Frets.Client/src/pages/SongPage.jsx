@@ -6,6 +6,7 @@ import ChordSheet from "../components/ChordSheet";
 import EntityAvatar from "../components/EntityAvatar";
 import YouTubeEmbed from "../components/YouTubeEmbed";
 import SongChordDiagrams from "../components/SongChordDiagrams";
+import TabSheet from "../components/TabSheet";
 function SongPage() {
   const { artist, title } = useParams();
 
@@ -162,9 +163,7 @@ function SongPage() {
                 {activeVersion.versionType === "chords" ? (
                   <ChordSheet content={activeVersion.content} />
                 ) : (
-                  <pre style={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
-                    {activeVersion.content}
-                  </pre>
+                  <TabSheet content={activeVersion.content} />
                 )}
               </>
             )}

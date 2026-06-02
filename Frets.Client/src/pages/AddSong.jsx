@@ -4,7 +4,7 @@ import { Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import api from "../api/client";
 import ChordLyricsEditor from "../components/ChordLyricsEditor";
 import VersionContentEditor from "../components/VersionContentEditor";
-import { buildChordJsonFromEditorText } from "../utils/chordEditorUtils";
+import { buildChordJsonFromEditorText, buildTabJsonFromAscii } from "../utils/chordEditorUtils";
 import slugify from "../utils/slugify";
 import SongSuggestField from "../components/SongSuggestField";
 import FormField from "../components/FormField";
@@ -143,7 +143,9 @@ function AddSong() {
     setLoading(true);
 
     const content =
-      versionType === "chords" ? buildChordJsonFromEditorText(chordEditorText, allChords) : tabContent;
+      versionType === "chords"
+        ? buildChordJsonFromEditorText(chordEditorText, allChords)
+        : buildTabJsonFromAscii(tabContent);
 
     const nextErrors = {};
     const titleError = validateRequired(title, "Podaj tytuł piosenki.");

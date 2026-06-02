@@ -10,7 +10,7 @@ export function isLikelyChordToken(token, chordSet) {
   const cleaned = token.trim().replace(/[()[\]{},.;:!?'"`]/g, "");
   if (!cleaned) return false;
   if (chordSet.has(cleaned.toLowerCase())) return true;
-  return /^[A-H](?:#|b)?(/i.test(cleaned) || /^[A-H](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\/[A-H](?:#|b)?)?$/i.test(cleaned);
+  return /^[A-H](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\/[A-H](?:#|b)?)?$/i.test(cleaned);
 }
 
 function splitToTokens(line) {
@@ -217,6 +217,77 @@ export function chordContentJsonToEditorText(content) {
       }
       out.push("");
     }
+    return out.join("\n").trim();
+  } catch {
+    return content;
+  }
+}
+
+export function buildTabJsonFromAscii(asciiText) {
+  if (!asciiText || !asciiText.trim()) return "";
+  
+  const paragraphs = asciiText.split(/\n\s*\n/);
+  const sections = [];
+
+  paragraphs.forEach((p, idx) => {
+    const lines = p.split("\n").map(l => l.trim()).filter(Boolean);
+    let label = "";
+    let type = "intro";
+    const tabLines = [];
+
+    lines.forEach(line => {
+      const headerMatch = line.match(/^\[(.*)\]$/);
+      if (headerMatch) {
+        label = headerMatch[1].trim();
+        const lowerLabel = label.toLowerCase();
+        if (lowerLabel.includes("zwrotka") || lowerLabel.includes("verse")) type = "verse";
+        else if (lowerLabel.includes("refren") || lowerLabel.includes("chorus")) type = "chorus";
+        else if (lowerLabel.includes("bridge")) type = "bridge";
+        else if (lowerLabel.includes("intro")) type = "intro";
+        else if (lowerLabel.includes("outro")) type = "outro";
+        else type = "verse";
+        return;
+      }
+
+      const match = line.match(/^\s*([a-gA-G]?)?\s*\|(.*)/);
+      if (match) {
+        const stringName = match[1] || "";
+        let notation = match[2] || "";
+        if (notation.endsWith("|")) {
+          notation = notation.slice(0, -1);
+        }
+        tabLines.push({ string: stringName, notation });
+      }
+    });
+
+    if (tabLines.length > 0) {
+      sections.push({
+        type,
+        label: label || `Sekcja ${idx + 1}`,
+        lines: tabLines
+      });
+    }
+  });
+
+  return JSON.stringify({ sections }, null, 2);
+}
+
+export function tabContentJsonToEditorText(content) {
+  if (!content || !content.trim()) return "";
+  try {
+    const data = JSON.parse(content);
+    if (!data.sections || data.sections.length === 0) return content;
+    
+    const out = [];
+    data.sections.forEach((section) => {
+      if (section.label) {
+        out.push(`[${section.label}]`);
+      }
+      section.lines.forEach((line) => {
+        out.push(`${line.string}|${line.notation}|`);
+      });
+      out.push("");
+    });
     return out.join("\n").trim();
   } catch {
     return content;
