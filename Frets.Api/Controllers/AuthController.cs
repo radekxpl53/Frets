@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (response, error) = await _authService.LoginAsync(request.Email, request.Password);
+        var (response, error) = await _authService.LoginAsync(request.Login, request.Password);
 
         if (error != null)
             return Unauthorized(error);
@@ -67,5 +67,16 @@ public class AuthController : ControllerBase
             return BadRequest("Invalid or expired token.");
 
         return Ok("Password reset successfully.");
+    }
+
+    [HttpPost("confirm-email-change")]
+    public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request)
+    {
+        var success = await _authService.ConfirmEmailChangeAsync(request.Token);
+
+        if (!success)
+            return BadRequest("Invalid or expired token.");
+
+        return Ok("Email address updated successfully.");
     }
 }

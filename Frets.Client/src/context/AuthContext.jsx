@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/client";
+import { normalizeUserProfile } from "../utils/userProfile";
 
 const AuthContext = createContext();
 
@@ -12,7 +13,7 @@ export function AuthProvider({ children }) {
     if (token) {
       api
         .get("/users/me")
-        .then((res) => setUser(res.data))
+        .then((res) => setUser(normalizeUserProfile(res.data)))
         .catch(() => {
           localStorage.removeItem("token");
           setUser(null);
@@ -23,12 +24,13 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
+  const login = async (login, password) => {
+    const res = await api.post("/auth/login", { login, password });
     localStorage.setItem("token", res.data.token);
     const profile = await api.get("/users/me");
-    setUser(profile.data);
-    return profile.data;
+    const normalized = normalizeUserProfile(profile.data);
+    setUser(normalized);
+    return normalized;
   };
 
   const register = async (username, email, password) => {
@@ -40,8 +42,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const profile = await api.get("/users/me");
+    const normalized = normalizeUserProfile(profile.data);
+    setUser(normalized);
+    return normalized;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

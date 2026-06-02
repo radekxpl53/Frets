@@ -1,0 +1,56 @@
+.profile-avatar-edit__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.profile-avatar-edit:hover .profile-avatar-edit__overlay,
+.profile-avatar-edit:focus-visible .profile-avatar-edit__overlay {
+  opacity: 1;
+}
+
+.profile-avatar-edit:disabled {
+  cursor: default;
+}
+
+.profile-avatar-edit:disabled .profile-avatar-edit__overlay {
+  display: none;
+}
+
+.profile-edit-modal__header {
+  align-items: center;
+}
+
+.profile-edit-modal__header-spacer {
+  width: 2rem;
+  flex-shrink: 0;
+}
+
+.profile-edit-modal__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.profile-edit-modal__icon-btn:hover:not(:disabled) {
+  color: var(--bs-body-color);
+  background-color: var(--bs-secondary-bg);
+}
+
+.profile-edit-modal__icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

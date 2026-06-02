@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<EmailConfirmationToken> EmailConfirmationTokens => Set<EmailConfirmationToken>();
+    public DbSet<EmailChangeToken> EmailChangeTokens => Set<EmailChangeToken>();
     public DbSet<Image> Images => Set<Image>();
     public DbSet<ArtistImage> ArtistImages => Set<ArtistImage>();
     public DbSet<UserProfileImage> UserProfileImages => Set<UserProfileImage>();
@@ -38,6 +39,7 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.Email).IsUnique();
             e.HasIndex(x => x.Username).IsUnique();
+            e.HasIndex(x => x.Slug).IsUnique();
         });
 
         modelBuilder.Entity<Artist>(e =>
@@ -216,6 +218,15 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<EmailConfirmationToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailChangeToken>(e =>
         {
             e.HasKey(x => x.Id);
             e.HasOne(x => x.User)

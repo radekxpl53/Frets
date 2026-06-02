@@ -3,6 +3,7 @@ namespace Frets.Core.DTOs.Users;
 public record UserProfileResponse(
     Guid Id,
     string Username,
+    string Slug,
     string Email,
     string Role,
     int Xp,
@@ -12,5 +13,7 @@ public record UserProfileResponse(
     int LongestStreak,
     int ChordsLearned,
     int SongsAdded,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? Bio = null,
+    string? ImageUrl = null
 );

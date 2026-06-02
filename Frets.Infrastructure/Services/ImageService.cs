@@ -224,6 +224,38 @@ public class ImageService
         return new ImageUploadResponse(image.Id, GetPublicUrl(image.StoragePath));
     }
 
+    public async Task<string?> SetUserProfileImageAsync(Guid userId, Guid imageId)
+    {
+        var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+        if (!userExists) return "User not found.";
+
+        var image = await _context.Images.FindAsync(imageId);
+        if (image == null) return "Image not found.";
+
+        var existing = await _context.UserProfileImages.FindAsync(userId);
+        if (existing == null)
+        {
+            _context.UserProfileImages.Add(new UserProfileImage { UserId = userId, ImageId = imageId });
+        }
+        else
+        {
+            existing.ImageId = imageId;
+        }
+
+        await _context.SaveChangesAsync();
+        return null;
+    }
+
+    public async Task<string> ResolveUserImageUrlAsync(Guid userId)
+    {
+        var path = await _context.UserProfileImages
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Image.StoragePath)
+            .FirstOrDefaultAsync();
+
+        return ResolveStoredImageUrl(path);
+    }
+
     public async Task<string?> SetArtistImageAsync(Guid artistId, Guid imageId)
     {
         var artistExists = await _context.Artists.AnyAsync(a => a.Id == artistId);

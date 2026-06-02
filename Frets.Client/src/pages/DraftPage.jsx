@@ -13,6 +13,9 @@ import {
 } from "../utils/chordEditorUtils";
 import slugify from "../utils/slugify";
 import { getApiError, getSongId, isAdminUser } from "../utils/apiError";
+import FormField from "../components/FormField";
+import { useFormErrors } from "../hooks/useFormErrors";
+import { validateRequired } from "../utils/validation";
 
 function DraftPage() {
   const { artist, title } = useParams();
@@ -35,6 +38,7 @@ function DraftPage() {
   const [adminActionLoading, setAdminActionLoading] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
   const [adminMsgVariant, setAdminMsgVariant] = useState("secondary");
+  const suggestionErrors = useFormErrors();
 
   const loadData = async () => {
     setLoading(true);
@@ -220,10 +224,23 @@ function DraftPage() {
   const handleAddSuggestion = async (e) => {
     e.preventDefault();
     if (!activeVersion?.id || !user) return;
+    suggestionErrors.clearErrors();
+
+    const nextErrors = {};
+    const commentError = validateRequired(comment, "Podaj komentarz.");
+    if (commentError) nextErrors.comment = commentError;
+
     if (activeVersion.versionType === "chords" && !chordEditorText.trim()) {
-      setVoteMsg("Wpisz proponowaną treść z akordami.");
+      nextErrors.suggestedContent = "Wpisz proponowaną treść z akordami.";
+    } else if (activeVersion.versionType === "tab" && !suggestedContent.trim()) {
+      nextErrors.suggestedContent = "Wpisz proponowaną treść tabulatury.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      suggestionErrors.setFieldErrors(nextErrors);
       return;
     }
+
     setVoteMsg("");
     setSubmitLoading(true);
     try {
@@ -241,7 +258,9 @@ function DraftPage() {
       setSuggestions(res.data ?? []);
       setVoteMsg("Dodano propozycję poprawki.");
     } catch (err) {
-      setVoteMsg(typeof err.response?.data === "string" ? err.response.data : "Nie udało się dodać propozycji.");
+      if (!suggestionErrors.applyApiError(err)) {
+        suggestionErrors.setFieldError("comment", "Nie udało się dodać propozycji.");
+      }
     } finally {
       setSubmitLoading(false);
     }
@@ -392,34 +411,39 @@ function DraftPage() {
             <Card.Body>
               <Card.Title className="fs-6">Komentarz / propozycja poprawki do tej wersji</Card.Title>
               {user ? (
-                <Form onSubmit={handleAddSuggestion}>
-                  <Form.Group className="mb-2">
-                    <Form.Label>Komentarz</Form.Label>
+                <Form onSubmit={handleAddSuggestion} noValidate>
+                  <FormField label="Komentarz" error={suggestionErrors.getError("comment")}>
                     <Form.Control
                       as="textarea"
                       rows={3}
                       placeholder="Opisz, co jest błędem i jak poprawić."
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      required
+                      {...suggestionErrors.bindText("comment", comment, setComment)}
                     />
-                  </Form.Group>
+                  </FormField>
                   <Form.Group className="mb-2">
                     <Form.Label>Proponowana treść wersji</Form.Label>
                     {activeVersion.versionType === "chords" ? (
                       <ChordLyricsEditor
                         value={chordEditorText}
-                        onChange={setChordEditorText}
+                        onChange={(v) => {
+                          suggestionErrors.clearField("suggestedContent");
+                          setChordEditorText(v);
+                        }}
                         allChords={allChords}
-                        required
+                        isInvalid={Boolean(suggestionErrors.getError("suggestedContent"))}
+                        error={suggestionErrors.getError("suggestedContent")}
                       />
                     ) : (
                       <VersionContentEditor
                         versionType="tab"
                         value={suggestedContent}
-                        onChange={setSuggestedContent}
+                        onChange={(v) => {
+                          suggestionErrors.clearField("suggestedContent");
+                          setSuggestedContent(v);
+                        }}
                         rows={10}
-                        required
+                        isInvalid={Boolean(suggestionErrors.getError("suggestedContent"))}
+                        error={suggestionErrors.getError("suggestedContent")}
                       />
                     )}
                   </Form.Group>

@@ -13,6 +13,8 @@ function SongSuggestField({
   onPick,
   required = false,
   placeholder = "",
+  error,
+  isInvalid,
 }) {
   const listId = useId();
   const [open, setOpen] = useState(false);
@@ -72,7 +74,10 @@ function SongSuggestField({
         autoComplete="off"
         aria-autocomplete="list"
         aria-expanded={showList}
+        isInvalid={isInvalid ?? Boolean(error)}
       />
+
+      {error ? <Form.Control.Feedback type="invalid">{error}</Form.Control.Feedback> : null}
 
       {showList && (
         <div

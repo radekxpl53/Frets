@@ -4,6 +4,9 @@ import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ConfirmEmail from "./pages/ConfirmEmail";
+import ConfirmEmailChange from "./pages/ConfirmEmailChange";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import SongPage from "./pages/SongPage";
@@ -16,6 +19,8 @@ import Chords from "./pages/Chords";
 import ChordFamily from "./pages/ChordFamily";
 import Artists from "./pages/Artists";
 import ArtistPage from "./pages/ArtistPage";
+import ProfilePage from "./pages/ProfilePage";
+import ProfileRedirect from "./pages/ProfileRedirect";
 
 function Placeholder({ name }) {
   return <div className="container mt-4"><h2>{name}</h2></div>;
@@ -31,10 +36,22 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/confirm-email" element={<ConfirmEmail />} />
+          <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/drafts" element={<Drafts />} />
           <Route path="/drafts/:artist/:title" element={<DraftPage />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/artists/:slug" element={<ArtistPage />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfileRedirect />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/users/:slug" element={<ProfilePage />} />
           <Route path="/songs/:artist/:title" element={<SongPage />} />
           <Route path="/songs/add" element={
             <ProtectedRoute>

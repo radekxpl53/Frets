@@ -2,34 +2,48 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Container, Form, Button, Alert, Card } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
+import FormField from "../components/FormField";
+import { useFormErrors } from "../hooks/useFormErrors";
+import { parseApiValidationError } from "../utils/formErrors";
+import { validateEmail, validatePassword, validateUsername } from "../utils/validation";
 
 function Register() {
   const { register } = useAuth();
+  const { clearErrors, setFieldError, setFieldErrors, getError, applyApiError, bindText } =
+    useFormErrors();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    clearErrors();
     setLoading(true);
 
+    const nextErrors = {};
+    const usernameError = validateUsername(username);
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+    if (usernameError) nextErrors.username = usernameError;
+    if (emailError) nextErrors.email = emailError;
+    if (passwordError) nextErrors.password = passwordError;
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setLoading(false);
+      return;
+    }
+
     try {
-      await register(username, email, password);
+      await register(username.trim(), email.trim(), password);
       setSuccess(true);
     } catch (err) {
-      const data = err.response?.data;
-      if (typeof data === "string") {
-        setError(data);
-      } else if (data?.errors) {
-        const messages = Object.values(data.errors).flat().join(" ");
-        setError(messages);
-      } else {
-        setError("Rejestracja nie powiodła się.");
+      if (!applyApiError(err)) {
+        const { message } = parseApiValidationError(err);
+        setFieldError("username", message ?? "Rejestracja nie powiodła się.");
       }
     } finally {
       setLoading(false);
@@ -49,41 +63,26 @@ function Register() {
             <>
               <h3 className="mb-4 text-center">Rejestracja</h3>
 
-              {error && <Alert variant="danger">{error}</Alert>}
+              <Form onSubmit={handleSubmit} noValidate>
+                <FormField label="Nazwa użytkownika" error={getError("username")}>
+                  <Form.Control type="text" {...bindText("username", username, setUsername)} />
+                </FormField>
 
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nazwa użytkownika</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </Form.Group>
+                <FormField label="Email" error={getError("email")}>
+                  <Form.Control type="email" {...bindText("email", email, setEmail)} autoComplete="email" />
+                </FormField>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Hasło</Form.Label>
+                <FormField
+                  label="Hasło"
+                  error={getError("password")}
+                  hint="Min. 8 znaków, wielka i mała litera, cyfra."
+                >
                   <Form.Control
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    {...bindText("password", password, setPassword)}
+                    autoComplete="new-password"
                   />
-                  <Form.Text className="text-muted">
-                    Min. 8 znaków, wielka i mała litera, cyfra.
-                  </Form.Text>
-                </Form.Group>
+                </FormField>
 
                 <Button type="submit" className="w-100" disabled={loading}>
                   {loading ? "Rejestracja..." : "Zarejestruj się"}

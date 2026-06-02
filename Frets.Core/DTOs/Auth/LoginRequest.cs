@@ -1,6 +1,6 @@
 namespace Frets.Core.DTOs.Auth;
 
 public record LoginRequest(
-    string Email,
+    string Login,
     string Password
 );

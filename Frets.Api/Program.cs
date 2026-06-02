@@ -104,6 +104,7 @@ using (var scope = app.Services.CreateScope())
     await CategorySeeder.SeedAsync(db);
     await TuningSeeder.SeedAsync(db);
     await DefaultImageSeeder.SeedAsync(db, imageService);
+    await UserSlugSeeder.SeedAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

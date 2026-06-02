@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Frets.Core.DTOs.Auth;
+using Frets.Infrastructure.Helpers;
 
 namespace Frets.Infrastructure.Services;
 
@@ -41,6 +42,7 @@ public class AuthService
         {
             Id = Guid.NewGuid(),
             Username = username,
+            Slug = await UserSlugHelper.GenerateUniqueAsync(_context, username),
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             CreatedAt = DateTime.UtcNow,
@@ -62,7 +64,7 @@ public class AuthService
         await _context.SaveChangesAsync();
         await _imageService.AssignDefaultAvatarAsync(user.Id);
 
-        var confirmLink = $"http://localhost:5173/confirm-email?token={token}";
+        var confirmLink = $"{GetClientBaseUrl()}/confirm-email?token={token}";
         await _emailService.SendAsync(
             user.Email,
             "Frets — Confirm your email",
@@ -72,12 +74,16 @@ public class AuthService
         return user;
     }
 
-    public async Task<(AuthResponse? Response, string? Error)> LoginAsync(string email, string password)
+    public async Task<(AuthResponse? Response, string? Error)> LoginAsync(string login, string password)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var trimmed = login.Trim();
+        var loginLower = trimmed.ToLowerInvariant();
+
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
+            u.Email.ToLower() == loginLower || u.Username.ToLower() == loginLower);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            return (null, "Invalid email or password.");
+            return (null, "Invalid email, username or password.");
 
         if (!user.EmailConfirmed)
             return (null, "Please confirm your email before logging in.");
@@ -181,7 +187,7 @@ public class AuthService
 
         await _context.SaveChangesAsync();
 
-        var resetLink = $"http://localhost:5173/reset-password?token={token}";
+        var resetLink = $"{GetClientBaseUrl()}/reset-password?token={token}";
         await _emailService.SendAsync(
             user.Email,
             "Frets — Reset your password",
@@ -222,4 +228,69 @@ public class AuthService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<string?> RequestEmailChangeAsync(Guid userId, string newEmail, string currentPassword)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return "User not found.";
+
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            return "Current password is incorrect.";
+
+        newEmail = newEmail.Trim().ToLowerInvariant();
+        if (string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase))
+            return "New email must be different from the current one.";
+
+        if (await _context.Users.AnyAsync(u => u.Email == newEmail && u.Id != userId))
+            return "Email is already in use.";
+
+        var pending = _context.EmailChangeTokens.Where(t => t.UserId == userId && !t.Used);
+        _context.EmailChangeTokens.RemoveRange(pending);
+
+        var token = Guid.NewGuid().ToString("N");
+        _context.EmailChangeTokens.Add(new EmailChangeToken
+        {
+            Id = Guid.NewGuid(),
+            Token = token,
+            NewEmail = newEmail,
+            UserId = userId,
+            ExpiresAt = DateTime.UtcNow.AddDays(1),
+            Used = false
+        });
+
+        await _context.SaveChangesAsync();
+
+        var confirmLink = $"{GetClientBaseUrl()}/confirm-email-change?token={token}";
+        await _emailService.SendAsync(
+            newEmail,
+            "Frets — Confirm your new email",
+            $"<p>Confirm your new email address for Frets:</p><a href='{confirmLink}'>{confirmLink}</a><p>The link expires in 24 hours. If you did not request this change, ignore this message.</p>"
+        );
+
+        return null;
+    }
+
+    public async Task<bool> ConfirmEmailChangeAsync(string token)
+    {
+        var changeToken = await _context.EmailChangeTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == token && !t.Used);
+
+        if (changeToken == null) return false;
+        if (changeToken.ExpiresAt < DateTime.UtcNow) return false;
+
+        if (await _context.Users.AnyAsync(u => u.Email == changeToken.NewEmail && u.Id != changeToken.UserId))
+            return false;
+
+        changeToken.User.Email = changeToken.NewEmail;
+        changeToken.User.EmailConfirmed = true;
+        changeToken.Used = true;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    private string GetClientBaseUrl() =>
+        _configuration["App:ClientBaseUrl"]?.TrimEnd('/')
+        ?? "http://localhost:5173";
 }

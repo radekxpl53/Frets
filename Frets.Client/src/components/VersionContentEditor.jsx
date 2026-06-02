@@ -16,6 +16,8 @@ function VersionContentEditor({
   required = false,
   showTabTools = true,
   placeholder,
+  isInvalid = false,
+  error,
 }) {
   const textareaRef = useRef(null);
 
@@ -86,7 +88,9 @@ function VersionContentEditor({
         }}
         placeholder={placeholder ?? (isTab ? TAB_TEMPLATE : "Wprowadź treść wersji...")}
         required={required}
+        isInvalid={isInvalid}
       />
+      {error ? <Form.Control.Feedback type="invalid" className="d-block">{error}</Form.Control.Feedback> : null}
     </>
   );
 }

@@ -1,27 +1,51 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Container, Form, Button, Alert, Card } from "react-bootstrap";
+import { Container, Form, Button, Card } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
+import FormField from "../components/FormField";
+import { useFormErrors } from "../hooks/useFormErrors";
+import { translateApiMessage } from "../utils/formErrors";
+import { validateRequired } from "../utils/validation";
 
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { clearErrors, setFieldErrors, getError, bindText } = useFormErrors();
 
-  const [email, setEmail] = useState("");
+  const [loginValue, setLoginValue] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    clearErrors();
     setLoading(true);
 
+    const nextErrors = {};
+    const loginError = validateRequired(loginValue, "Podaj email lub nazwę użytkownika.");
+    const passwordError = validateRequired(password, "Podaj hasło.");
+    if (loginError) nextErrors.login = loginError;
+    if (passwordError) nextErrors.password = passwordError;
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setLoading(false);
+      return;
+    }
+
     try {
-      await login(email, password);
+      await login(loginValue, password);
       navigate("/");
     } catch (err) {
-      setError("Nieprawidłowy email lub hasło.");
+      const data = err.response?.data;
+      const message =
+        typeof data === "string"
+          ? translateApiMessage(data)
+          : "Nieprawidłowy email, nazwa użytkownika lub hasło.";
+      setFieldErrors({
+        login: message,
+        password: message,
+      });
     } finally {
       setLoading(false);
     }
@@ -33,28 +57,22 @@ function Login() {
         <Card.Body>
           <h3 className="mb-4 text-center">Logowanie</h3>
 
-          {error && <Alert variant="danger">{error}</Alert>}
-
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
+          <Form onSubmit={handleSubmit} noValidate>
+            <FormField label="Email lub nazwa użytkownika" error={getError("login")}>
               <Form.Control
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                type="text"
+                {...bindText("login", loginValue, setLoginValue)}
+                autoComplete="username"
               />
-            </Form.Group>
+            </FormField>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Hasło</Form.Label>
+            <FormField label="Hasło" error={getError("password")}>
               <Form.Control
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...bindText("password", password, setPassword)}
+                autoComplete="current-password"
               />
-            </Form.Group>
+            </FormField>
 
             <Button type="submit" className="w-100" disabled={loading}>
               {loading ? "Logowanie..." : "Zaloguj się"}

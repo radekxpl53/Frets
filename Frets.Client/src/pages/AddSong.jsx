@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Card, Container, Form, Spinner } from "react-bootstrap";
+import { Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import api from "../api/client";
 import ChordLyricsEditor from "../components/ChordLyricsEditor";
 import VersionContentEditor from "../components/VersionContentEditor";
 import { buildChordJsonFromEditorText } from "../utils/chordEditorUtils";
 import slugify from "../utils/slugify";
 import SongSuggestField from "../components/SongSuggestField";
+import FormField from "../components/FormField";
+import { useFormErrors } from "../hooks/useFormErrors";
+import { validateRequired } from "../utils/validation";
 
 const DRAFT_KEY = "frets:add-song:draft:v1";
 
@@ -28,13 +31,21 @@ function AddSong() {
   const [tunings, setTunings] = useState([]);
   const [metaLoading, setMetaLoading] = useState(true);
 
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const {
+    clearErrors,
+    setFieldError,
+    setFieldErrors,
+    getError,
+    controlProps,
+    applyApiError,
+    bindText,
+  } = useFormErrors();
 
   useEffect(() => {
     const loadMetadata = async () => {
       setMetaLoading(true);
-      setError("");
+      clearErrors();
       try {
         const [metaRes, chordsRes] = await Promise.all([
           api.get("/songs/meta"),
@@ -63,7 +74,7 @@ function AddSong() {
           setTuningId(defaultTuning.id);
         }
       } catch {
-        setError("Nie udało się pobrać kategorii, strojów lub akordów.");
+        setFieldError("categoryId", "Nie udało się pobrać kategorii, strojów lub akordów.");
       } finally {
         setMetaLoading(false);
       }
@@ -123,25 +134,31 @@ function AddSong() {
     setCapo(0);
     setTabContent("");
     setChordEditorText("");
-    setError("");
+    clearErrors();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    clearErrors();
     setLoading(true);
 
     const content =
       versionType === "chords" ? buildChordJsonFromEditorText(chordEditorText, allChords) : tabContent;
 
+    const nextErrors = {};
+    const titleError = validateRequired(title, "Podaj tytuł piosenki.");
+    const artistError = validateRequired(artist, "Podaj wykonawcę.");
+    if (titleError) nextErrors.title = titleError;
+    if (artistError) nextErrors.artist = artistError;
+
     if (versionType === "chords" && !chordEditorText.trim()) {
-      setError("Wpisz treść piosenki lub linie z akordami.");
-      setLoading(false);
-      return;
+      nextErrors.content = "Wpisz treść piosenki lub linie z akordami.";
+    } else if (versionType === "tab" && !tabContent.trim()) {
+      nextErrors.content = "Wpisz treść tabulatury.";
     }
 
-    if (versionType === "tab" && !tabContent.trim()) {
-      setError("Wpisz treść tabulatury.");
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       setLoading(false);
       return;
     }
@@ -169,8 +186,9 @@ function AddSong() {
       const songPath = `${slugify(artist)}/${slugify(title)}`;
       navigate(status === "approved" ? `/songs/${songPath}` : `/drafts/${songPath}`);
     } catch (err) {
-      const data = err.response?.data;
-      setError(typeof data === "string" ? data : "Nie udało się dodać piosenki.");
+      if (!applyApiError(err)) {
+        setFieldError("title", "Nie udało się dodać piosenki.");
+      }
     } finally {
       setLoading(false);
     }
@@ -190,49 +208,60 @@ function AddSong() {
         <Card.Body>
           <h3 className="mb-4">Dodaj piosenkę</h3>
 
-          {error && <Alert variant="danger">{error}</Alert>}
-
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit} noValidate>
             <SongSuggestField
               label="Tytuł"
               field="title"
               value={title}
-              onChange={setTitle}
+              onChange={(v) => {
+                clearErrors();
+                setTitle(v);
+              }}
               onPick={handleSuggestPick}
               required
               placeholder="Tytuł"
+              error={getError("title")}
             />
 
             <SongSuggestField
               label="Wykonawca"
               field="artist"
               value={artist}
-              onChange={setArtist}
+              onChange={(v) => {
+                clearErrors();
+                setArtist(v);
+              }}
               onPick={handleSuggestPick}
               required
               placeholder="Wykonawca"
+              error={getError("artist")}
             />
 
-            <Form.Group className="mb-3">
-              <Form.Label>Kategoria</Form.Label>
-              <Form.Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+            <FormField label="Kategoria" error={getError("categoryId")}>
+              <Form.Select
+                value={categoryId}
+                onChange={(e) => {
+                  clearErrors();
+                  setCategoryId(e.target.value);
+                }}
+                required
+                {...controlProps("categoryId")}
+              >
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
                 ))}
               </Form.Select>
-            </Form.Group>
+            </FormField>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Link do YouTube (opcjonalnie)</Form.Label>
+            <FormField label="Link do YouTube (opcjonalnie)" error={getError("youTubeUrl")}>
               <Form.Control
                 type="url"
-                value={youTubeUrl}
-                onChange={(e) => setYouTubeUrl(e.target.value)}
+                {...bindText("youTubeUrl", youTubeUrl, setYouTubeUrl)}
                 placeholder="https://www.youtube.com/watch?v=..."
               />
-            </Form.Group>
+            </FormField>
 
             <hr />
             <h5 className="mb-3">Wersja</h5>
@@ -283,9 +312,14 @@ function AddSong() {
                 <Form.Label>Treść i akordy</Form.Label>
                 <ChordLyricsEditor
                   value={chordEditorText}
-                  onChange={setChordEditorText}
+                  onChange={(v) => {
+                    clearErrors();
+                    setChordEditorText(v);
+                  }}
                   allChords={allChords}
                   required
+                  isInvalid={Boolean(getError("content"))}
+                  error={getError("content")}
                 />
               </Form.Group>
             ) : (
@@ -295,9 +329,14 @@ function AddSong() {
                   <VersionContentEditor
                     versionType="tab"
                     value={tabContent}
-                    onChange={setTabContent}
+                    onChange={(v) => {
+                      clearErrors();
+                      setTabContent(v);
+                    }}
                     rows={10}
                     required
+                    isInvalid={Boolean(getError("content"))}
+                    error={getError("content")}
                   />
                 </Form.Group>
                 <div className="small text-muted mt-1 mb-3">

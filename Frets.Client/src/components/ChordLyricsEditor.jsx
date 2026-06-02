@@ -14,6 +14,8 @@ function ChordLyricsEditor({
   showSectionButtons = true,
   required = false,
   placeholder = "Przykład:\nAm   F   C   G\nTo jest moja linia tekstu\n\nC   G\nNastępna linia",
+  isInvalid = false,
+  error,
 }) {
   const [cursorPos, setCursorPos] = useState(0);
   const chordTextareaRef = useRef(null);
@@ -137,6 +139,7 @@ function ChordLyricsEditor({
           }}
           placeholder={placeholder}
           required={required}
+          isInvalid={isInvalid}
         />
         <div
           ref={chordOverlayRef}
@@ -152,7 +155,7 @@ function ChordLyricsEditor({
             whiteSpace: "pre-wrap",
             overflow: "hidden",
             pointerEvents: "none",
-            border: "1px solid #ced4da",
+            border: `1px solid ${isInvalid ? "var(--bs-form-invalid-border-color, #dc3545)" : "#ced4da"}`,
             borderRadius: "0.375rem",
             backgroundColor: "#fff",
             lineHeight: "1.5",
@@ -183,6 +186,7 @@ function ChordLyricsEditor({
           Wykryto linie mieszane (tekst + akordy). Takie linie są traktowane jako zwykły tekst.
         </Alert>
       )}
+      {error ? <Form.Control.Feedback type="invalid" className="d-block">{error}</Form.Control.Feedback> : null}
       <Form.Text className="text-muted">
         Jeśli linia zawiera rozpoznane akordy, traktujemy ją jako linię akordów dla następnej linii tekstu.
       </Form.Text>
