@@ -6,5 +6,8 @@ public record SuggestionResponse(
     string Status,
     string? Comment,
     string AuthorUsername,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    int PositiveVoteWeight = 0,
+    int NegativeVoteWeight = 0,
+    bool? UserVoteIsPositive = null
 );

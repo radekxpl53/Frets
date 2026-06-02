@@ -35,10 +35,36 @@ public class SongsController : ControllerBase
         return Ok(metadata);
     }
 
+    [HttpGet("drafts")]
+    public async Task<IActionResult> GetDrafts(
+    [FromQuery] string? genre,
+    [FromQuery] string? artist,
+    [FromQuery] string? search)
+    {
+        var songs = await _songService.GetDraftSongsAsync(genre, artist, search);
+        return Ok(songs);
+    }
+
     [HttpGet("{artistSlug}/{titleSlug}")]
     public async Task<IActionResult> GetBySlug(string artistSlug, string titleSlug)
     {
         var song = await _songService.GetBySlugAsync(artistSlug, titleSlug);
+
+        if (song == null)
+            return NotFound();
+
+        return Ok(song);
+    }
+
+    [HttpGet("drafts/{artistSlug}/{titleSlug}")]
+    public async Task<IActionResult> GetDraftBySlug(string artistSlug, string titleSlug)
+    {
+        Guid? userId = null;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim != null)
+            userId = Guid.Parse(userIdClaim);
+
+        var song = await _songService.GetDraftBySlugAsync(artistSlug, titleSlug, userId);
 
         if (song == null)
             return NotFound();
@@ -75,11 +101,11 @@ public class SongsController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim);
-        var error = await _songService.VoteAsync(id, userId, request.IsPositive);
+        var (error, summary) = await _songService.VoteAsync(id, userId, request.IsPositive);
 
         if (error != null) return BadRequest(error);
 
-        return Ok("Vote registered.");
+        return Ok(summary);
     }
 
     [HttpGet("{artistSlug}/{titleSlug}/versions")]

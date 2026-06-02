@@ -16,6 +16,16 @@ public class UserService
         _xpService = xpService;
     }
 
+    public async Task<bool> IsAdminAsync(Guid userId)
+    {
+        var role = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync();
+
+        return string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<UserProfileResponse?> GetProfileAsync(Guid userId)
     {
         var user = await _context.Users

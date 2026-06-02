@@ -31,6 +31,9 @@ function Navbar() {
             <Nav.Link as={Link} to="/chords">
               Akordy
             </Nav.Link>
+            <Nav.Link as={Link} to="/drafts">
+              Szkice
+            </Nav.Link>
           </Nav>
 
           <Nav>

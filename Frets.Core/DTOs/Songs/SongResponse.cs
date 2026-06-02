@@ -7,5 +7,8 @@ public record SongResponse(
     string? Genre,
     string Status,
     string AuthorUsername,
-    DateTime? SubmittedAt
+    DateTime? SubmittedAt,
+    int PositiveVoteWeight = 0,
+    int NegativeVoteWeight = 0,
+    bool? UserVoteIsPositive = null
 );

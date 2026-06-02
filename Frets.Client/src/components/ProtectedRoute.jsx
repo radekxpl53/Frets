@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { Spinner, Container } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
+import { isAdminUser } from "../utils/apiError";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -17,7 +18,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (adminOnly && user.role !== "admin") {
+  if (adminOnly && !isAdminUser(user)) {
     return <Navigate to="/" replace />;
   }
 
