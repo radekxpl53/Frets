@@ -54,6 +54,56 @@ public class SongService
             .ToListAsync();
     }
 
+    public async Task<List<SongResponse>> GetDraftSongsAsync(string? genre, string? artist, string? search)
+    {
+        var query = _context.Songs
+            .Where(s =>
+                s.Status == null ||
+                s.Status.Trim().ToLower() == "draft" ||
+                s.Status.Trim().ToLower() == "pending")
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(genre))
+            query = query.Where(s => s.Genre != null && s.Genre.ToLower() == genre.ToLower());
+
+        if (!string.IsNullOrEmpty(artist))
+        {
+            var artistSlug = SlugHelper.Generate(artist);
+            query = query.Where(s => _context.Artists
+                .Any(a => a.Id == s.ArtistId && a.Slug == artistSlug));
+        }
+
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(s =>
+                s.Title.ToLower().Contains(search.ToLower()) ||
+                _context.Artists.Any(a => a.Id == s.ArtistId && a.Name.ToLower().Contains(search.ToLower())));
+
+        return await query
+            .OrderByDescending(s => s.SubmittedAt)
+            .Select(s => new SongResponse(
+                s.Id,
+                s.Title,
+                _context.Artists
+                    .Where(a => a.Id == s.ArtistId)
+                    .Select(a => a.Name)
+                    .FirstOrDefault() ?? "(nieznany artysta)",
+                s.Genre,
+                s.Status,
+                _context.Users
+                    .Where(u => u.Id == s.AuthorId)
+                    .Select(u => u.Username)
+                    .FirstOrDefault() ?? "(nieznany autor)",
+                s.SubmittedAt,
+                _context.SongVotes
+                    .Where(v => v.SongId == s.Id && v.IsPositive)
+                    .Sum(v => (int?)v.VoteWeight) ?? 0,
+                _context.SongVotes
+                    .Where(v => v.SongId == s.Id && !v.IsPositive)
+                    .Sum(v => (int?)v.VoteWeight) ?? 0
+            ))
+            .ToListAsync();
+    }
+
     public async Task<SongResponse?> GetBySlugAsync(string artistSlug, string titleSlug)
     {
         var song = await _context.Songs
@@ -76,6 +126,51 @@ public class SongService
             song.Author.Username,
             song.SubmittedAt
         );
+    }
+
+    public async Task<SongResponse?> GetDraftBySlugAsync(string artistSlug, string titleSlug, Guid? userId = null)
+    {
+        var song = await _context.Songs
+            .Include(s => s.Artist)
+            .Include(s => s.Author)
+            .FirstOrDefaultAsync(s =>
+                s.Artist.Slug == artistSlug &&
+                s.TitleSlug == titleSlug &&
+                (s.Status == null ||
+                 s.Status.Trim().ToLower() == "draft" ||
+                 s.Status.Trim().ToLower() == "pending"));
+
+        if (song == null) return null;
+
+        var voteSummary = await GetSongVoteSummaryAsync(song.Id, userId);
+
+        return new SongResponse(
+            song.Id,
+            song.Title,
+            song.Artist.Name,
+            song.Genre,
+            song.Status,
+            song.Author.Username,
+            song.SubmittedAt,
+            voteSummary.PositiveVoteWeight,
+            voteSummary.NegativeVoteWeight,
+            voteSummary.UserVoteIsPositive
+        );
+    }
+
+    public async Task<VoteSummaryDto> GetSongVoteSummaryAsync(Guid songId, Guid? userId = null)
+    {
+        var votes = await _context.SongVotes
+            .Where(v => v.SongId == songId)
+            .ToListAsync();
+
+        var positive = votes.Where(v => v.IsPositive).Sum(v => v.VoteWeight);
+        var negative = votes.Where(v => !v.IsPositive).Sum(v => v.VoteWeight);
+        bool? userVote = userId.HasValue
+            ? votes.FirstOrDefault(v => v.UserId == userId.Value)?.IsPositive
+            : null;
+
+        return new VoteSummaryDto(positive, negative, userVote);
     }
 
     public async Task<Song?> GetBySlugInternalAsync(string artistSlug, string titleSlug)
@@ -189,13 +284,17 @@ public class SongService
         );
     }
 
-    public async Task<string?> VoteAsync(Guid songId, Guid userId, bool isPositive)
+    public async Task<(string? Error, VoteSummaryDto? Summary)> VoteAsync(Guid songId, Guid userId, bool isPositive)
     {
         var song = await _context.Songs.FirstOrDefaultAsync(s => s.Id == songId);
-        if (song == null) return "Song not found.";
+        if (song == null) return ("Song not found.", null);
 
-        if (song.Status != "pending")
-            return "Song is not open for voting.";
+        var status = song.Status?.Trim().ToLower();
+        if (status != "pending" && status != "draft" && status != null)
+            return ("Song is not open for voting.", null);
+
+        if (status == "draft")
+            song.Status = "pending";
 
         var existingVote = await _context.SongVotes
             .FirstOrDefaultAsync(v => v.SongId == songId && v.UserId == userId);
@@ -208,7 +307,7 @@ public class SongService
         else
         {
             var user = await _context.Users.FindAsync(userId);
-            if (user == null) return "User not found.";
+            if (user == null) return ("User not found.", null);
 
             var weight = user.Level switch
             {
@@ -231,7 +330,8 @@ public class SongService
         await _context.SaveChangesAsync();
         await CheckVoteThresholdAsync(songId);
 
-        return null;
+        var summary = await GetSongVoteSummaryAsync(songId, userId);
+        return (null, summary);
     }
 
     private async Task CheckVoteThresholdAsync(Guid songId)
@@ -269,10 +369,21 @@ public class SongService
         var song = await _context.Songs.FindAsync(songId);
         if (song == null) return "Song not found.";
 
+        var previousStatus = song.Status?.Trim().ToLower();
         song.Status = newStatus;
         song.StatusChangedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        if (newStatus == "approved" && previousStatus != "approved")
+        {
+            await _xpService.AddXpAsync(
+                song.AuthorId,
+                "song_approved",
+                XpService.XpValues.SongApproved,
+                new { songId = song.Id, approvedBy = "admin" });
+        }
+
         return null;
     }
 

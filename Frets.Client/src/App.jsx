@@ -8,6 +8,9 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import SongPage from "./pages/SongPage";
 import AddSong from "./pages/AddSong";
+import Drafts from "./pages/Drafts";
+import DraftPage from "./pages/DraftPage";
+import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Chords from "./pages/Chords";
 import ChordFamily from "./pages/ChordFamily";
@@ -26,6 +29,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/confirm-email" element={<ConfirmEmail />} />
+          <Route path="/drafts" element={<Drafts />} />
+          <Route path="/drafts/:artist/:title" element={<DraftPage />} />
           <Route path="/songs/:artist/:title" element={<SongPage />} />
           <Route path="/songs/add" element={
             <ProtectedRoute>
@@ -34,6 +39,14 @@ function App() {
           } />
           <Route path="/chords" element={<Chords />} />
           <Route path="/chords/:key" element={<ChordFamily />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
       

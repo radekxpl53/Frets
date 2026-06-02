@@ -1,12 +1,13 @@
 using Frets.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Frets.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Roles = "admin")]
+[Authorize]
 public class AdminController : ControllerBase
 {
     private readonly SongService _songService;
@@ -20,33 +21,57 @@ public class AdminController : ControllerBase
         _userService = userService;
     }
 
+    private async Task<IActionResult?> EnsureAdminAsync()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null)
+            return Unauthorized();
+
+        if (!await _userService.IsAdminAsync(Guid.Parse(userIdClaim)))
+            return StatusCode(403, "Wymagane uprawnienia administratora.");
+
+        return null;
+    }
+
     [HttpPost("songs/{id}/approve")]
     public async Task<IActionResult> ApproveSong(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var error = await _songService.ChangeStatusAsync(id, "approved");
         if (error != null) return BadRequest(error);
-        return Ok("Song approved.");
+        return Ok(new { message = "Song approved.", status = "approved" });
     }
 
     [HttpPost("songs/{id}/reject")]
     public async Task<IActionResult> RejectSong(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var error = await _songService.ChangeStatusAsync(id, "rejected");
         if (error != null) return BadRequest(error);
-        return Ok("Song rejected.");
+        return Ok(new { message = "Song rejected.", status = "rejected" });
     }
 
     [HttpPost("songs/{id}/pending")]
     public async Task<IActionResult> SetPending(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var error = await _songService.ChangeStatusAsync(id, "pending");
         if (error != null) return BadRequest(error);
-        return Ok("Song set to pending.");
+        return Ok(new { message = "Song set to pending.", status = "pending" });
     }
 
     [HttpPost("suggestions/{id}/approve")]
     public async Task<IActionResult> ApproveSuggestion(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var error = await _suggestionService.AdminReviewAsync(id, "approved");
         if (error != null) return BadRequest(error);
         return Ok("Suggestion approved.");
@@ -55,6 +80,9 @@ public class AdminController : ControllerBase
     [HttpPost("suggestions/{id}/reject")]
     public async Task<IActionResult> RejectSuggestion(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var error = await _suggestionService.AdminReviewAsync(id, "rejected");
         if (error != null) return BadRequest(error);
         return Ok("Suggestion rejected.");
@@ -63,6 +91,9 @@ public class AdminController : ControllerBase
     [HttpGet("songs")]
     public async Task<IActionResult> GetAllSongs([FromQuery] string? status)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var songs = await _songService.GetAllSongsAdminAsync(status);
         return Ok(songs);
     }
@@ -70,6 +101,9 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers()
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var users = await _userService.GetAllUsersAdminAsync();
         return Ok(users);
     }
@@ -77,9 +111,11 @@ public class AdminController : ControllerBase
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
         var success = await _userService.DeleteUserAdminAsync(id);
         if (!success) return NotFound();
         return Ok("User deleted.");
     }
-
 }

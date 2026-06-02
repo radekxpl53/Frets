@@ -46,7 +46,7 @@ public class SuggestionService
         );
     }
 
-    public async Task<List<SuggestionResponse>> GetByVersionAsync(Guid versionId)
+    public async Task<List<SuggestionResponse>> GetByVersionAsync(Guid versionId, Guid? userId = null)
     {
         return await _context.VersionSuggestions
             .Where(s => s.VersionId == versionId)
@@ -57,18 +57,45 @@ public class SuggestionService
                 s.Status,
                 s.Comment,
                 s.Author.Username,
-                s.CreatedAt
+                s.CreatedAt,
+                _context.SuggestionVotes
+                    .Where(v => v.SuggestionId == s.Id && v.IsPositive)
+                    .Sum(v => (int?)v.VoteWeight) ?? 0,
+                _context.SuggestionVotes
+                    .Where(v => v.SuggestionId == s.Id && !v.IsPositive)
+                    .Sum(v => (int?)v.VoteWeight) ?? 0,
+                userId.HasValue
+                    ? _context.SuggestionVotes
+                        .Where(v => v.SuggestionId == s.Id && v.UserId == userId.Value)
+                        .Select(v => (bool?)v.IsPositive)
+                        .FirstOrDefault()
+                    : null
             ))
             .ToListAsync();
     }
 
-    public async Task<string?> VoteAsync(Guid suggestionId, Guid userId, bool isPositive)
+    public async Task<VoteSummaryDto> GetSuggestionVoteSummaryAsync(Guid suggestionId, Guid? userId = null)
+    {
+        var votes = await _context.SuggestionVotes
+            .Where(v => v.SuggestionId == suggestionId)
+            .ToListAsync();
+
+        var positive = votes.Where(v => v.IsPositive).Sum(v => v.VoteWeight);
+        var negative = votes.Where(v => !v.IsPositive).Sum(v => v.VoteWeight);
+        bool? userVote = userId.HasValue
+            ? votes.FirstOrDefault(v => v.UserId == userId.Value)?.IsPositive
+            : null;
+
+        return new VoteSummaryDto(positive, negative, userVote);
+    }
+
+    public async Task<(string? Error, VoteSummaryDto? Summary)> VoteAsync(Guid suggestionId, Guid userId, bool isPositive)
     {
         var suggestion = await _context.VersionSuggestions.FindAsync(suggestionId);
-        if (suggestion == null) return "Suggestion not found.";
+        if (suggestion == null) return ("Suggestion not found.", null);
 
         if (suggestion.Status != "pending")
-            return "Suggestion is not open for voting.";
+            return ("Suggestion is not open for voting.", null);
 
         var existingVote = await _context.SuggestionVotes
             .FirstOrDefaultAsync(v => v.SuggestionId == suggestionId && v.UserId == userId);
@@ -81,7 +108,7 @@ public class SuggestionService
         else
         {
             var user = await _context.Users.FindAsync(userId);
-            if (user == null) return "User not found.";
+            if (user == null) return ("User not found.", null);
 
             var weight = user.Level switch
             {
@@ -104,7 +131,8 @@ public class SuggestionService
         await _context.SaveChangesAsync();
         await CheckVoteThresholdAsync(suggestionId);
 
-        return null;
+        var summary = await GetSuggestionVoteSummaryAsync(suggestionId, userId);
+        return (null, summary);
     }
 
     private async Task CheckVoteThresholdAsync(Guid suggestionId)

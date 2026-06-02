@@ -20,7 +20,12 @@ public class SuggestionsController : ControllerBase
     [HttpGet("version/{versionId}")]
     public async Task<IActionResult> GetByVersion(Guid versionId)
     {
-        var suggestions = await _suggestionService.GetByVersionAsync(versionId);
+        Guid? userId = null;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim != null)
+            userId = Guid.Parse(userIdClaim);
+
+        var suggestions = await _suggestionService.GetByVersionAsync(versionId, userId);
         return Ok(suggestions);
     }
 
@@ -48,11 +53,11 @@ public class SuggestionsController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim);
-        var error = await _suggestionService.VoteAsync(id, userId, request.IsPositive);
+        var (error, summary) = await _suggestionService.VoteAsync(id, userId, request.IsPositive);
 
         if (error != null) return BadRequest(error);
 
-        return Ok("Vote registered.");
+        return Ok(summary);
     }
 
     [HttpDelete("{id}")]
