@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Container, Nav, Spinner } from "react-bootstrap";
 import api from "../api/client";
 import ChordSheet from "../components/ChordSheet";
+import TabSheet from "../components/TabSheet";
 import { useAuth } from "../context/AuthContext";
 import VotePanel, { formatVoteCounts } from "../components/VotePanel";
 import slugify from "../utils/slugify";
@@ -267,9 +268,7 @@ function DraftPage() {
                 {activeVersion.versionType === "chords" ? (
                   <ChordSheet content={activeVersion.content} />
                 ) : (
-                  <pre style={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
-                    {activeVersion.content}
-                  </pre>
+                  <TabSheet content={activeVersion.content} />
                 )}
               </>
             )}

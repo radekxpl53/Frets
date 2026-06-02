@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Form } from "react-bootstrap";
+import VisualTabEditor, { parseAsciiToGrid } from "./VisualTabEditor";
 
 const TAB_TEMPLATE = `e|----------------|
 B|----------------|
@@ -20,6 +21,13 @@ function VersionContentEditor({
   error,
 }) {
   const textareaRef = useRef(null);
+  
+  const [mode, setMode] = useState(() => {
+    if (versionType !== "tab") return "text";
+    if (!value || !value.trim()) return "visual";
+    const parsed = parseAsciiToGrid(value);
+    return parsed.length > 0 ? "visual" : "text";
+  });
 
   const autoResize = (el) => {
     if (!el) return;
@@ -28,8 +36,10 @@ function VersionContentEditor({
   };
 
   useEffect(() => {
-    autoResize(textareaRef.current);
-  }, [value, versionType]);
+    if (mode === "text") {
+      autoResize(textareaRef.current);
+    }
+  }, [value, versionType, mode]);
 
   const insertIntoTab = (textToInsert) => {
     const el = textareaRef.current;
@@ -52,44 +62,81 @@ function VersionContentEditor({
 
   return (
     <>
-      {isTab && showTabTools && (
-        <div className="d-flex gap-2 flex-wrap mb-2">
-          <Button type="button" size="sm" variant="outline-secondary" onClick={() => onChange(TAB_TEMPLATE)}>
-            Szablon 6 strun
-          </Button>
-          <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("|----------------|")}>
-            Wstaw takt
-          </Button>
-          <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("-")}>
-            Wstaw "-"
-          </Button>
-          <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("\n")}>
-            Nowa linia
-          </Button>
+      {isTab && (
+        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <span className="small fw-semibold text-muted">Tryb edycji tabulatury:</span>
+          <div className="btn-group" role="group">
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "visual" ? "primary" : "outline-primary"}
+              onClick={() => {
+                const parsed = parseAsciiToGrid(value);
+                if (value.trim() && parsed.length === 0) {
+                  alert("Nie można przełączyć na edytor wizualny. Treść zawiera niestandardowy tekst.");
+                  return;
+                }
+                setMode("visual");
+              }}
+            >
+              Wizualny
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "text" ? "primary" : "outline-primary"}
+              onClick={() => setMode("text")}
+            >
+              Tekstowy
+            </Button>
+          </div>
         </div>
       )}
 
-      <Form.Control
-        ref={textareaRef}
-        as="textarea"
-        rows={rows}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          autoResize(e.target);
-        }}
-        style={{
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
-          fontSize: "14px",
-          lineHeight: "1.45",
-          resize: "none",
-          overflow: "hidden",
-          minHeight: isTab ? "240px" : "220px",
-        }}
-        placeholder={placeholder ?? (isTab ? TAB_TEMPLATE : "Wprowadź treść wersji...")}
-        required={required}
-        isInvalid={isInvalid}
-      />
+      {isTab && mode === "visual" ? (
+        <VisualTabEditor value={value} onChange={onChange} />
+      ) : (
+        <>
+          {isTab && showTabTools && (
+            <div className="d-flex gap-2 flex-wrap mb-2">
+              <Button type="button" size="sm" variant="outline-secondary" onClick={() => onChange(TAB_TEMPLATE)}>
+                Szablon 6 strun
+              </Button>
+              <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("|----------------|")}>
+                Wstaw takt
+              </Button>
+              <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("-")}>
+                Wstaw "-"
+              </Button>
+              <Button type="button" size="sm" variant="outline-secondary" onClick={() => insertIntoTab("\n")}>
+                Nowa linia
+              </Button>
+            </div>
+          )}
+
+          <Form.Control
+            ref={textareaRef}
+            as="textarea"
+            rows={rows}
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value);
+              autoResize(e.target);
+            }}
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
+              fontSize: "14px",
+              lineHeight: "1.45",
+              resize: "none",
+              overflow: "hidden",
+              minHeight: isTab ? "240px" : "220px",
+            }}
+            placeholder={placeholder ?? (isTab ? TAB_TEMPLATE : "Wprowadź treść wersji...")}
+            required={required}
+            isInvalid={isInvalid}
+          />
+        </>
+      )}
       {error ? <Form.Control.Feedback type="invalid" className="d-block">{error}</Form.Control.Feedback> : null}
     </>
   );
