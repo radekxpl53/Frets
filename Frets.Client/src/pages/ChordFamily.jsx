@@ -56,7 +56,7 @@ function ChordFamily() {
           {chords.map((chord) => (
             <Col key={chord.id} xs={6} sm={4} md={3} lg={2} className="mb-4 text-center">
               <Card>
-                <Card.Body className="p-2">
+                <Card.Body className="p-2 d-flex flex-column align-items-center">
                   <ChordDiagram chordKey={chord.key} suffix={chord.suffix} />
                   <div className="mt-2 fw-bold">{chordName(chord.key, chord.suffix)}</div>
                 </Card.Body>

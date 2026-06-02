@@ -14,7 +14,7 @@ function Chords() {
         {KEYS.map((key) => (
           <Col key={key} xs={6} sm={4} md={3} lg={2} className="mb-4 text-center">
             <Card as={Link} to={`/chords/${encodeURIComponent(key)}`} className="text-decoration-none text-dark h-100">
-              <Card.Body className="p-2">
+              <Card.Body className="p-2 d-flex flex-column align-items-center">
                 <ChordDiagram chordKey={key} suffix="major" />
                 <div className="mt-2 fw-bold">{key}</div>
               </Card.Body>
