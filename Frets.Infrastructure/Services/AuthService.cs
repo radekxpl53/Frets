@@ -15,12 +15,18 @@ public class AuthService
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly EmailService _emailService;
+    private readonly ImageService _imageService;
 
-    public AuthService(AppDbContext context, IConfiguration configuration, EmailService emailService)
+    public AuthService(
+        AppDbContext context,
+        IConfiguration configuration,
+        EmailService emailService,
+        ImageService imageService)
     {
         _context = context;
         _configuration = configuration;
         _emailService = emailService;
+        _imageService = imageService;
     }
 
     public async Task<User?> RegisterAsync(string username, string email, string password)
@@ -54,6 +60,7 @@ public class AuthService
         });
 
         await _context.SaveChangesAsync();
+        await _imageService.AssignDefaultAvatarAsync(user.Id);
 
         var confirmLink = $"http://localhost:5173/confirm-email?token={token}";
         await _emailService.SendAsync(

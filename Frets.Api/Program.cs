@@ -73,6 +73,7 @@ builder.Services.AddScoped<SuggestionService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<XpService>();
 builder.Services.AddScoped<ChordIndexer>();
+builder.Services.AddScoped<ImageService>();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -87,16 +88,22 @@ builder.Services.AddCors(options =>
     });
 });
 
+var webRootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(webRootPath);
+builder.Configuration["Media:WebRootPath"] = webRootPath;
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var imageService = scope.ServiceProvider.GetRequiredService<ImageService>();
     await db.Database.MigrateAsync();
     await ChordSeeder.SeedAsync(db);
     await LevelThresholdSeeder.SeedAsync(db);
     await CategorySeeder.SeedAsync(db);
     await TuningSeeder.SeedAsync(db);
+    await DefaultImageSeeder.SeedAsync(db, imageService);
 }
 
 if (app.Environment.IsDevelopment())
@@ -107,6 +114,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

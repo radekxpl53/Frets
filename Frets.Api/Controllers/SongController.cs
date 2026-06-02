@@ -45,6 +45,16 @@ public class SongsController : ControllerBase
         return Ok(songs);
     }
 
+    [HttpGet("suggest/titles")]
+    public async Task<IActionResult> SuggestTitles([FromQuery] string search, [FromQuery] int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 2)
+            return Ok(Array.Empty<string>());
+
+        var titles = await _songService.SuggestTitlesAsync(search.Trim(), limit);
+        return Ok(titles);
+    }
+
     [HttpGet("{artistSlug}/{titleSlug}")]
     public async Task<IActionResult> GetBySlug(string artistSlug, string titleSlug)
     {
@@ -129,7 +139,7 @@ public class SongsController : ControllerBase
         var version = await _songService.CreateVersionAsync(id, request, authorId);
 
         if (version == null)
-            return BadRequest("Song not found, you are not the author, or invalid version type.");
+            return BadRequest("Song not found, this version type already exists, or the request is invalid.");
 
         return Ok(version);
     }

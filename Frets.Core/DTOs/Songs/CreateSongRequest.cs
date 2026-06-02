@@ -4,5 +4,6 @@ public record CreateSongRequest(
     string Title,
     string Artist,
     Guid CategoryId,
-    CreateSongVersionRequest? Version
+    CreateSongVersionRequest? Version,
+    string? YouTubeUrl = null
 );

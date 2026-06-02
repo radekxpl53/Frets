@@ -7,4 +7,5 @@ public class Artist
     public string Slug { get; set; } = string.Empty;
 
     public ICollection<Song> Songs { get; set; } = [];
+    public ArtistImage? ArtistImage { get; set; }
 }

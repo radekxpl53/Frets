@@ -5,6 +5,7 @@ public class Song
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Genre { get; set; }
+    public string? YouTubeUrl { get; set; }
     public string Status { get; set; } = "draft";
     public DateTime? SubmittedAt { get; set; }
     public DateTime? StatusChangedAt { get; set; }

@@ -4,5 +4,6 @@ public record ArtistResponse(
     Guid Id,
     string Name,
     string Slug,
-    int SongCount
+    int SongCount,
+    string? ImageUrl = null
 );

@@ -10,5 +10,8 @@ public record SongResponse(
     DateTime? SubmittedAt,
     int PositiveVoteWeight = 0,
     int NegativeVoteWeight = 0,
-    bool? UserVoteIsPositive = null
+    bool? UserVoteIsPositive = null,
+    string? ArtistSlug = null,
+    string? ArtistImageUrl = null,
+    string? YouTubeUrl = null
 );
