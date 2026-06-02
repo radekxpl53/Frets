@@ -10,6 +10,7 @@ import SongPage from "./pages/SongPage";
 import AddSong from "./pages/AddSong";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Chords from "./pages/Chords";
+import ChordFamily from "./pages/ChordFamily";
 
 function Placeholder({ name }) {
   return <div className="container mt-4"><h2>{name}</h2></div>;
@@ -32,6 +33,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/chords" element={<Chords />} />
+          <Route path="/chords/:key" element={<ChordFamily />} />
         </Routes>
       </BrowserRouter>
       

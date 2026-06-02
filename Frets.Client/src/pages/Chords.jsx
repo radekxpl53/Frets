@@ -1,22 +1,24 @@
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Card } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import ChordDiagram from "../components/ChordDiagram";
 
-function Chords() {
-  const testChords = [
-    { key: "C", suffix: "major" },
-    { key: "A", suffix: "minor" },
-    { key: "G", suffix: "major" },
-    { key: "F#", suffix: "minor" },
-  ];
+const KEYS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 
+function Chords() {
   return (
     <Container className="mt-4">
       <h2 className="mb-4">Akordy</h2>
+      <p className="text-muted">Wybierz tonację, aby zobaczyć wszystkie akordy z tej rodziny.</p>
+
       <Row>
-        {testChords.map((c, i) => (
-          <Col key={i} xs={6} md={3} className="mb-4 text-center">
-            <ChordDiagram chordKey={c.key} suffix={c.suffix} />
-            <div className="mt-2">{c.key}{c.suffix === "minor" ? "m" : ""}</div>
+        {KEYS.map((key) => (
+          <Col key={key} xs={6} sm={4} md={3} lg={2} className="mb-4 text-center">
+            <Card as={Link} to={`/chords/${encodeURIComponent(key)}`} className="text-decoration-none text-dark h-100">
+              <Card.Body className="p-2">
+                <ChordDiagram chordKey={key} suffix="major" />
+                <div className="mt-2 fw-bold">{key}</div>
+              </Card.Body>
+            </Card>
           </Col>
         ))}
       </Row>

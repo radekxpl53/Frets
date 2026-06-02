@@ -29,7 +29,8 @@ public static class ChordSeeder
         {
             var keyStr = key.GetString()!;
 
-            if (!chordsData.TryGetProperty(keyStr, out var keyChords))
+            var dbKey = keyStr.Replace("#", "sharp");
+            if (!chordsData.TryGetProperty(dbKey, out var keyChords))
                 continue;
 
             foreach (var chordEntry in keyChords.EnumerateArray())
