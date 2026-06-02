@@ -92,6 +92,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await ChordSeeder.SeedAsync(db);
     await LevelThresholdSeeder.SeedAsync(db);
+    await CategorySeeder.SeedAsync(db);
+    await TuningSeeder.SeedAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

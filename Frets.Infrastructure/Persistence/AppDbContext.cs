@@ -19,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<XpEvent> XpEvents => Set<XpEvent>();
     public DbSet<LevelThreshold> LevelThresholds => Set<LevelThreshold>();
     public DbSet<Artist> Artists => Set<Artist>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Tuning> Tunings => Set<Tuning>();
     public DbSet<VersionSuggestion> VersionSuggestions => Set<VersionSuggestion>();
     public DbSet<SuggestionVote> SuggestionVotes => Set<SuggestionVote>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
@@ -41,6 +43,18 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Slug).IsUnique();
         });
 
+        modelBuilder.Entity<Category>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<Tuning>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Code).IsUnique();
+        });
+
         modelBuilder.Entity<Song>(e =>
         {
             e.HasKey(x => x.Id);
@@ -59,6 +73,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ArtistId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            e.HasOne(x => x.Category)
+                .WithMany(x => x.Songs)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             e.HasIndex(x => new { x.ArtistId, x.TitleSlug }).IsUnique();
         });
 
@@ -69,6 +88,11 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Versions)
                 .HasForeignKey(x => x.SongId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.TuningEntity)
+                .WithMany(x => x.Versions)
+                .HasForeignKey(x => x.TuningId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<VersionChords>(e =>
