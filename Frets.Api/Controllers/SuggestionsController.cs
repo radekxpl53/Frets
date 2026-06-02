@@ -17,6 +17,20 @@ public class SuggestionsController : ControllerBase
         _suggestionService = suggestionService;
     }
 
+    [HttpGet("feed")]
+    public async Task<IActionResult> GetFeed(
+        [FromQuery] string? filter,
+        [FromQuery] string? search)
+    {
+        Guid? userId = null;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim != null)
+            userId = Guid.Parse(userIdClaim);
+
+        var items = await _suggestionService.GetCommunityFeedAsync(filter, search, userId);
+        return Ok(items);
+    }
+
     [HttpGet("version/{versionId}")]
     public async Task<IActionResult> GetByVersion(Guid versionId)
     {

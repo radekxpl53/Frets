@@ -10,6 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import SongPage from "./pages/SongPage";
+import VersionSuggestionsPage from "./pages/VersionSuggestionsPage";
 import AddSong from "./pages/AddSong";
 import Drafts from "./pages/Drafts";
 import DraftPage from "./pages/DraftPage";
@@ -40,6 +41,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/drafts" element={<Drafts />} />
+          <Route path="/drafts/:artist/:title/suggestions" element={<VersionSuggestionsPage />} />
           <Route path="/drafts/:artist/:title" element={<DraftPage />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/artists/:slug" element={<ArtistPage />} />
@@ -52,6 +54,7 @@ function App() {
             }
           />
           <Route path="/users/:slug" element={<ProfilePage />} />
+          <Route path="/songs/:artist/:title/suggestions" element={<VersionSuggestionsPage />} />
           <Route path="/songs/:artist/:title" element={<SongPage />} />
           <Route path="/songs/add" element={
             <ProtectedRoute>

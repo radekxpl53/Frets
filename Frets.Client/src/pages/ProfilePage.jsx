@@ -375,7 +375,7 @@ function ProfilePage() {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="drafts" onClick={() => setActiveTab("drafts")} style={{ cursor: "pointer" }}>
-                Szkice ({drafts.length})
+                Opracowania ({drafts.length})
               </Nav.Link>
             </Nav.Item>
           </Nav>

@@ -32,7 +32,7 @@ function Navbar() {
               Akordy
             </Nav.Link>
             <Nav.Link as={Link} to="/drafts">
-              Szkice
+              Opracowania
             </Nav.Link>
           </Nav>
 

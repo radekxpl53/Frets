@@ -19,9 +19,11 @@ public static class UserSlugHelper
         var slug = baseSlug;
         var suffix = 2;
 
-        while (await context.Users.AnyAsync(
-                   u => u.Slug == slug && (!excludeUserId.HasValue || u.Id != excludeUserId),
-                   cancellationToken))
+        while (await context.Users
+                   .IgnoreQueryFilters()
+                   .AnyAsync(
+                       u => u.Slug == slug && (!excludeUserId.HasValue || u.Id != excludeUserId),
+                       cancellationToken))
         {
             slug = $"{baseSlug}-{suffix}";
             suffix++;

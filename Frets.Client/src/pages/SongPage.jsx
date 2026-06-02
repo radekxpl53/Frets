@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Container, Card, Nav, Spinner, Alert, Badge, Row, Col } from "react-bootstrap";
+import { Container, Card, Nav, Spinner, Alert, Badge, Row, Col, Button } from "react-bootstrap";
 import api from "../api/client";
 import ChordSheet from "../components/ChordSheet";
 import EntityAvatar from "../components/EntityAvatar";
 import YouTubeEmbed from "../components/YouTubeEmbed";
 import SongChordDiagrams from "../components/SongChordDiagrams";
-
 function SongPage() {
   const { artist, title } = useParams();
 
@@ -64,6 +63,11 @@ function SongPage() {
   const hasTab = versions.some((v) => v.versionType === "tab");
   const artistSlug = song.artistSlug ?? artist;
 
+  const suggestionsPath =
+    versions.length > 0
+      ? `/songs/${artist}/${title}/suggestions?type=${activeType}`
+      : null;
+
   return (
     <Container className="mt-4" style={{ maxWidth: "960px" }}>
       <Card className="mb-4 border-0 shadow-sm">
@@ -82,7 +86,19 @@ function SongPage() {
                   {song.artist}
                 </Link>
               </p>
-              {song.genre && <Badge bg="secondary">{song.genre}</Badge>}
+              <div className="d-flex flex-wrap gap-2 align-items-center">
+                {song.genre && <Badge bg="secondary">{song.genre}</Badge>}
+                {suggestionsPath && (
+                  <Button
+                    as={Link}
+                    to={suggestionsPath}
+                    variant="outline-primary"
+                    size="sm"
+                  >
+                    Zaproponuj poprawkę
+                  </Button>
+                )}
+              </div>
             </Col>
           </Row>
         </Card.Body>

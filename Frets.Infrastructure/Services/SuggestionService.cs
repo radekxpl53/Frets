@@ -14,6 +14,155 @@ public class SuggestionService
         _context = context;
     }
 
+    public async Task<List<CommunityFeedItemDto>> GetCommunityFeedAsync(
+        string? filter,
+        string? search,
+        Guid? userId = null)
+    {
+        var normalizedFilter = (filter ?? "all").Trim().ToLowerInvariant();
+        if (normalizedFilter is not ("all" or "songs" or "changes"))
+            normalizedFilter = "all";
+
+        var items = new List<CommunityFeedItemDto>();
+
+        if (normalizedFilter is "all" or "songs")
+            items.AddRange(await GetSongDraftFeedItemsAsync(search, userId));
+
+        if (normalizedFilter is "all" or "changes")
+            items.AddRange(await GetChangeFeedItemsAsync(search, userId));
+
+        return items
+            .OrderByDescending(i => i.SortDate)
+            .ToList();
+    }
+
+    private static bool IsDraftSongStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return true;
+        var normalized = status.Trim().ToLowerInvariant();
+        return normalized is "draft" or "pending";
+    }
+
+    private async Task<List<CommunityFeedItemDto>> GetSongDraftFeedItemsAsync(string? search, Guid? userId)
+    {
+        var query = _context.Songs
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted);
+
+        var songs = await query
+            .Include(s => s.Artist)
+            .Include(s => s.Author)
+            .ToListAsync();
+
+        songs = songs.Where(s => IsDraftSongStatus(s.Status)).ToList();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            songs = songs.Where(s =>
+                s.Title.ToLowerInvariant().Contains(term) ||
+                s.Artist.Name.ToLowerInvariant().Contains(term)).ToList();
+        }
+
+        var songIds = songs.Select(s => s.Id).ToList();
+        var songVotes = songIds.Count == 0
+            ? []
+            : await _context.SongVotes
+                .AsNoTracking()
+                .Where(v => songIds.Contains(v.SongId))
+                .ToListAsync();
+
+        return songs
+            .OrderByDescending(s => s.SubmittedAt ?? s.StatusChangedAt ?? DateTime.MinValue)
+            .Select(s =>
+            {
+                var votes = songVotes.Where(v => v.SongId == s.Id).ToList();
+                var positive = votes.Where(v => v.IsPositive).Sum(v => v.VoteWeight);
+                var negative = votes.Where(v => !v.IsPositive).Sum(v => v.VoteWeight);
+                bool? userVote = userId.HasValue
+                    ? votes.FirstOrDefault(v => v.UserId == userId.Value)?.IsPositive
+                    : null;
+
+                return new CommunityFeedItemDto(
+                    "song",
+                    s.Id,
+                    s.Title,
+                    s.Artist.Name,
+                    s.Artist.Slug,
+                    s.TitleSlug,
+                    s.Status,
+                    s.Author.Username,
+                    s.SubmittedAt ?? s.StatusChangedAt ?? DateTime.MinValue,
+                    positive,
+                    negative,
+                    userVote,
+                    null,
+                    null,
+                    null,
+                    null);
+            })
+            .ToList();
+    }
+
+    private static bool IsOpenSuggestionStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return true;
+        return status.Trim().ToLowerInvariant() != "rejected";
+    }
+
+    private async Task<List<CommunityFeedItemDto>> GetChangeFeedItemsAsync(string? search, Guid? userId)
+    {
+        var suggestions = await _context.VersionSuggestions
+            .AsNoTracking()
+            .Include(s => s.SongVersion)
+                .ThenInclude(v => v.Song)
+                .ThenInclude(song => song.Artist)
+            .Include(s => s.Author)
+            .Include(s => s.Votes)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+
+        var list = suggestions
+            .Where(s => !s.SongVersion.Song.IsDeleted && IsOpenSuggestionStatus(s.Status))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            list = list.Where(s =>
+                s.SongVersion.Song.Title.ToLowerInvariant().Contains(term) ||
+                s.SongVersion.Song.Artist.Name.ToLowerInvariant().Contains(term) ||
+                (s.Comment?.ToLowerInvariant().Contains(term) == true)).ToList();
+        }
+
+        return list.Select(s =>
+        {
+            var positive = s.Votes.Where(v => v.IsPositive).Sum(v => v.VoteWeight);
+            var negative = s.Votes.Where(v => !v.IsPositive).Sum(v => v.VoteWeight);
+            bool? userVote = userId.HasValue
+                ? s.Votes.FirstOrDefault(v => v.UserId == userId.Value)?.IsPositive
+                : null;
+
+            return new CommunityFeedItemDto(
+                "change",
+                s.SongVersion.Song.Id,
+                s.SongVersion.Song.Title,
+                s.SongVersion.Song.Artist.Name,
+                s.SongVersion.Song.Artist.Slug,
+                s.SongVersion.Song.TitleSlug,
+                s.SongVersion.Song.Status,
+                s.Author.Username,
+                s.CreatedAt,
+                positive,
+                negative,
+                userVote,
+                s.Id,
+                s.Status,
+                s.Comment,
+                s.SongVersion.VersionType);
+        }).ToList();
+    }
+
     public async Task<SuggestionResponse?> CreateAsync(Guid versionId, Guid authorId, CreateSuggestionRequest request)
     {
         var version = await _context.SongVersions.FindAsync(versionId);
