@@ -108,6 +108,7 @@ function ChordLyricsEditor({
         <Form.Control
           ref={chordTextareaRef}
           as="textarea"
+          className="chord-editor__textarea"
           rows={12}
           value={value}
           onChange={(e) => {
@@ -155,9 +156,10 @@ function ChordLyricsEditor({
             whiteSpace: "pre-wrap",
             overflow: "hidden",
             pointerEvents: "none",
-            border: `1px solid ${isInvalid ? "var(--bs-form-invalid-border-color, #dc3545)" : "#ced4da"}`,
+            border: `1px solid ${isInvalid ? "var(--bs-form-invalid-border-color, #dc3545)" : "var(--frets-border)"}`,
             borderRadius: "0.375rem",
-            backgroundColor: "#fff",
+            backgroundColor: "var(--frets-surface-2)",
+            color: "var(--frets-text)",
             lineHeight: "1.5",
           }}
           dangerouslySetInnerHTML={{ __html: `${highlightedEditorHtml || "&nbsp;"}\n` }}

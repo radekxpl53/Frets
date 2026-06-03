@@ -1,28 +1,29 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ConfirmEmail from "./pages/ConfirmEmail";
-import ConfirmEmailChange from "./pages/ConfirmEmailChange";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+import Login from "./pages/Login/Login";
+import Register from "./pages/Register/Register";
+import ConfirmEmail from "./pages/ConfirmEmail/ConfirmEmail";
+import ConfirmEmailChange from "./pages/ConfirmEmailChange/ConfirmEmailChange";
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword/ResetPassword";
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import SongPage from "./pages/SongPage";
-import VersionSuggestionsPage from "./pages/VersionSuggestionsPage";
-import AddSong from "./pages/AddSong";
-import Drafts from "./pages/Drafts";
-import DraftPage from "./pages/DraftPage";
-import Admin from "./pages/Admin";
+import Home from "./pages/Home/Home";
+import SongPage from "./pages/SongPage/SongPage";
+import VersionSuggestionsPage from "./pages/VersionSuggestionsPage/VersionSuggestionsPage";
+import AddSong from "./pages/AddSong/AddSong";
+import Drafts from "./pages/Drafts/Drafts";
+import DraftPage from "./pages/DraftPage/DraftPage";
+import Admin from "./pages/Admin/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Chords from "./pages/Chords";
-import ChordFamily from "./pages/ChordFamily";
-import Artists from "./pages/Artists";
-import ArtistPage from "./pages/ArtistPage";
-import ProfilePage from "./pages/ProfilePage";
-import ProfileRedirect from "./pages/ProfileRedirect";
-import Tuner from "./pages/Tuner";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Chords from "./pages/Chords/Chords";
+import ChordFamily from "./pages/ChordFamily/ChordFamily";
+import Artists from "./pages/Artists/Artists";
+import ArtistPage from "./pages/ArtistPage/ArtistPage";
+import ProfilePage from "./pages/ProfilePage/ProfilePage";
+import ProfileRedirect from "./pages/ProfileRedirect/ProfileRedirect";
+import Tuner from "./pages/Tuner/Tuner";
 import { Navigate } from "react-router-dom";
 
 function Placeholder({ name }) {
@@ -34,6 +35,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -76,8 +78,8 @@ function App() {
             }
           />
         </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
-      
     </AuthProvider>
   );
 }

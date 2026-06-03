@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Frets.Api", "--launch-profile", "http"],
+      "port": 5041
+    },
+    {
+      "name": "client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Frets.Client", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+﻿import { useEffect, useId, useState } from "react";
 import { Form, Spinner } from "react-bootstrap";
 import {
   fetchArtistSuggestions,
@@ -81,12 +81,12 @@ function SongSuggestField({
 
       {showList && (
         <div
-          className="list-group position-absolute w-100 mt-1 bg-white border rounded shadow"
+          className="list-group position-absolute w-100 mt-1 border rounded shadow"
           style={{ zIndex: 1050 }}
           role="listbox"
         >
           {loading && items.length === 0 ? (
-            <div className="list-group-item bg-white border-0 px-3 py-2 text-muted small d-flex align-items-center gap-2">
+            <div className="list-group-item border-0 px-3 py-2 text-muted small d-flex align-items-center gap-2">
               <Spinner size="sm" animation="border" />
               Szukam…
             </div>
@@ -100,7 +100,7 @@ function SongSuggestField({
                   key={key}
                   type="button"
                   role="option"
-                  className="list-group-item list-group-item-action bg-white py-2 px-3 border-0 rounded-0"
+                  className="list-group-item list-group-item-action py-2 px-3 border-0 rounded-0"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handlePick(item)}
                 >

@@ -349,6 +349,9 @@ public class SongService
         var song = await _context.Songs.FirstOrDefaultAsync(s => s.Id == songId);
         if (song == null) return ("Song not found.", null);
 
+        if (song.AuthorId == userId)
+            return ("You cannot vote on your own song.", null);
+
         var status = song.Status?.Trim().ToLower();
         if (status != "pending" && status != "draft" && status != null)
             return ("Song is not open for voting.", null);

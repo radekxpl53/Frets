@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Button, Card, Col, Row, Form } from "react-bootstrap";
 
 const DEFAULT_COLS = 16;
@@ -372,7 +372,7 @@ function VisualTabEditor({ value, onChange }) {
       <div className="d-flex flex-column gap-4">
         {measures.map((measure, measureIdx) => (
           <Card key={measureIdx} className="shadow-sm border-light">
-            <Card.Header className="d-flex justify-content-between align-items-center bg-white py-2">
+            <Card.Header className="d-flex justify-content-between align-items-center py-2">
               <span className="fw-semibold text-primary small">Takt {measureIdx + 1}</span>
               <div className="d-flex gap-2">
                 <Button

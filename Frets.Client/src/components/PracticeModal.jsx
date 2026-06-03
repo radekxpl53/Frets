@@ -234,7 +234,10 @@ export default function PracticeModal({ chord, currentMastery, onClose, onMaster
 
         {/* ── Panel feedback (tylko podczas grania) ── */}
         {phase === "playing" && current && !micError && (
-          <div className="border rounded-3 p-3 bg-light">
+          <div
+            className="border rounded-3 p-3"
+            style={{ background: "var(--frets-surface-2)", borderColor: "var(--frets-border)" }}
+          >
             {/* nagłówek */}
             <div className="d-flex align-items-center gap-2 mb-2">
               <i className="bi bi-mic-fill text-danger" style={{ fontSize: "1.1rem" }} />
@@ -247,12 +250,12 @@ export default function PracticeModal({ chord, currentMastery, onClose, onMaster
             {/* igła */}
             <div
               className="position-relative mb-1"
-              style={{ height: 22, background: "#e9ecef", borderRadius: 11 }}
+              style={{ height: 22, background: "var(--frets-border)", borderRadius: 11 }}
             >
               {/* środek */}
               <div style={{
                 position: "absolute", left: "50%", top: 3,
-                width: 2, height: 16, background: "#adb5bd",
+                width: 2, height: 16, background: "var(--frets-text-muted)",
                 transform: "translateX(-50%)",
               }} />
               {/* kulka */}
@@ -267,7 +270,7 @@ export default function PracticeModal({ chord, currentMastery, onClose, onMaster
             </div>
 
             {/* etykiety */}
-            <div className="d-flex justify-content-between mb-2" style={{ fontSize: "0.7rem", color: "#6c757d" }}>
+            <div className="d-flex justify-content-between mb-2" style={{ fontSize: "0.7rem", color: "var(--frets-text-muted)" }}>
               <span>za nisko</span>
               <span>
                 {cents === null

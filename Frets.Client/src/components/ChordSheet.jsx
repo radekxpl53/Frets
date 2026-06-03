@@ -45,7 +45,7 @@ function ChordSheet({ content }) {
           </div>
           {section.lines.map((line, li) => (
             <div key={li} className="mb-2">
-              <div style={{ whiteSpace: "pre", color: "#0d6efd", fontWeight: "bold" }}>
+              <div style={{ whiteSpace: "pre", color: "var(--frets-accent-light)", fontWeight: "bold" }}>
                 {buildChordLine(line.chords)}
               </div>
               <div style={{ whiteSpace: "pre" }}>{line.lyrics}</div>
