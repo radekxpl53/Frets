@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Badge, Button, ButtonGroup, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, ButtonGroup, Card, Col, Container, Form, Row } from "react-bootstrap";
 import api from "../../api/client";
 import { formatVoteCounts } from "../../components/VotePanel";
+import { statusLabel } from "../../utils/statusLabels";
+import EmptyState from "../../components/EmptyState";
+import PageHeader from "../../components/PageHeader";
+import SkeletonCard from "../../components/SkeletonCard";
 import slugify from "../../utils/slugify";
 import { normalizeFeedItem } from "../../utils/feedItem";
 
@@ -96,10 +100,10 @@ function Drafts() {
 
   return (
     <Container className="mt-4">
-      <h2 className="mb-1">Opracowania</h2>
-      <p className="text-muted mb-3">
-        Przeglądaj nowe piosenki czekające na publikację oraz poprawki do istniejących wersji.
-      </p>
+      <PageHeader
+        title="Opracowania"
+        subtitle="Przeglądaj nowe piosenki czekające na publikację oraz poprawki do istniejących wersji."
+      />
 
       <ButtonGroup className="mb-3 flex-wrap">
         {FILTERS.map((f) => (
@@ -132,11 +136,15 @@ function Drafts() {
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
-        <div className="text-center mt-5">
-          <Spinner animation="border" />
-        </div>
+        <Row>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Col md={6} lg={4} key={i} className="mb-3">
+              <SkeletonCard />
+            </Col>
+          ))}
+        </Row>
       ) : items.length === 0 ? (
-        <p className="text-muted">{emptyMessage}</p>
+        <EmptyState icon="bi-inbox" title={emptyMessage} />
       ) : (
         <Row>
           {items.map((item) => {
@@ -148,15 +156,15 @@ function Drafts() {
                 <Card className="h-100">
                   <Card.Body className="d-flex flex-column">
                     <div className="d-flex flex-wrap gap-2 mb-2">
-                      <Badge bg={item.kind === "song" ? "info" : "secondary"}>
+                      <Badge bg={item.kind === "song" ? "primary" : "secondary"}>
                         {feedItemKindLabel(item)}
                       </Badge>
                       {status && (
-                        <Badge bg={statusVariant(status)}>{status}</Badge>
+                        <Badge bg={statusVariant(status)}>{statusLabel(status)}</Badge>
                       )}
                     </div>
                     <Card.Title>
-                      <Link to={feedItemPath(item)} className="text-decoration-none">
+                      <Link to={feedItemPath(item)} className="text-decoration-none stretched-link">
                         {item.title}
                       </Link>
                     </Card.Title>
@@ -167,7 +175,7 @@ function Drafts() {
                       </Card.Text>
                     )}
                     <div className="d-flex align-items-center gap-2 mb-2 flex-wrap mt-auto">
-                      <Badge bg="light" text="dark" className="fw-normal">
+                      <Badge bg="secondary" className="fw-normal">
                         {formatVoteCounts(item.positiveVoteWeight, item.negativeVoteWeight)}
                       </Badge>
                     </div>

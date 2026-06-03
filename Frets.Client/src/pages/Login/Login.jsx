@@ -52,7 +52,7 @@ function Login() {
   };
 
   return (
-    <Container style={{ maxWidth: "400px" }} className="mt-5">
+    <Container style={{ maxWidth: "400px" }} className="auth-screen">
       <Card>
         <Card.Body>
           <h3 className="mb-4 text-center">Logowanie</h3>

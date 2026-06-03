@@ -17,6 +17,7 @@ import {
 import api from "../../api/client";
 import EditableProfileAvatar from "../../components/EditableProfileAvatar";
 import EntityAvatar from "../../components/EntityAvatar";
+import Skeleton from "../../components/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
@@ -280,8 +281,26 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <Container className="mt-5 text-center">
-        <Spinner animation="border" />
+      <Container className="mt-4" style={{ maxWidth: "900px" }}>
+        <Card className="mb-4 border-0 shadow-sm">
+          <Card.Body>
+            <div className="d-flex align-items-start gap-3">
+              <Skeleton width={96} height={96} rounded />
+              <div className="flex-grow-1">
+                <Skeleton width="40%" height={24} className="mb-2" />
+                <Skeleton width="25%" height={14} className="mb-3" />
+                <Skeleton width="80%" height={12} />
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+        <Card className="shadow-sm">
+          <Card.Body>
+            <Skeleton width="30%" height={16} className="mb-3" />
+            <Skeleton width="100%" height={48} className="mb-2" />
+            <Skeleton width="100%" height={48} />
+          </Card.Body>
+        </Card>
       </Container>
     );
   }

@@ -10,12 +10,105 @@
 .xpBar { height: 6px; background: var(--frets-surface-2); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
 .xpBarFill { height: 100%; background: linear-gradient(90deg, var(--frets-accent), var(--frets-accent-light)); border-radius: 3px; transition: width 0.4s ease; }
 
+.levelBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--frets-accent-light);
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+
 .statTile { background: var(--frets-surface-2); border: 1px solid var(--frets-border); border-radius: 8px; padding: 0.6rem; text-align: center; transition: border-color 0.2s; }
 .statTile:hover { border-color: rgba(139,92,246,0.3); }
 .statValue { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
 .statLabel { font-size: 0.72rem; color: var(--frets-text-muted); margin-top: 2px; }
 
-.songCard { background: var(--frets-surface) !important; border: 1px solid var(--frets-border) !important; border-radius: 10px !important; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; }
+/* ─── Hero (landing dla niezalogowanych) ─────────────────────────────────── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--frets-border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(139, 92, 246, 0.28), transparent 46%),
+    linear-gradient(135deg, #1c1a34 0%, #0e0d1d 65%);
+  padding: 2.75rem 2rem;
+  margin-bottom: 2rem;
+}
+/* rezerwacja miejsca po prawej na nutkę, żeby tekst jej nie nachodził */
+@media (min-width: 576px) {
+  .hero { padding-right: 180px; }
+}
+.heroContent { position: relative; z-index: 1; max-width: 600px; }
+.heroEyebrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--frets-accent-light);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 1rem;
+}
+.heroTitle {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.85rem;
+}
+.heroAccent {
+  background: linear-gradient(90deg, var(--frets-accent-light), #c4b5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.heroSubtitle {
+  color: var(--frets-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+}
+.heroImg {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(8deg);
+  height: 140px;
+  width: auto;
+  opacity: 0.95;
+  filter: drop-shadow(0 14px 30px rgba(139, 92, 246, 0.5));
+  pointer-events: none;
+  user-select: none;
+}
+@media (max-width: 575.98px) {
+  .heroImg { display: none; }
+  .hero { padding: 2rem 1.5rem; }
+}
+
+.songCover {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(124, 58, 237, 0.10));
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: var(--frets-accent-light);
+  font-size: 1.25rem;
+}
+
+.songCard { background: var(--frets-surface) !important; border: 1px solid var(--frets-border) !important; border-radius: 12px !important; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; }
 .songCard:hover { border-color: rgba(139,92,246,0.4) !important; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139,92,246,0.1) !important; }
 .songTitle { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--frets-accent-light) !important; text-decoration: none !important; }
 .songArtist { font-size: 0.82rem; color: var(--frets-text-muted); }

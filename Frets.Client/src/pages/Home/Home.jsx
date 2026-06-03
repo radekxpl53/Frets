@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
-  Container, Row, Col, Card, Form, Button, Spinner, Badge,
+  Container, Row, Col, Card, Form, Button, Badge,
 } from "react-bootstrap";
 import api from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { plChord, plDay, plSong } from "../../utils/pluralize";
+import EmptyState from "../../components/EmptyState";
+import EntityAvatar from "../../components/EntityAvatar";
+import PageHeader from "../../components/PageHeader";
+import SkeletonCard from "../../components/SkeletonCard";
+import heroImg from "../../assets/music-note.svg";
 import styles from "./Home.module.css";
 
 // ─── Progi XP dla 10 poziomów (z zał. projektu: 0–5000) ─────────────────────
@@ -32,18 +37,25 @@ function slugify(text) {
 
 function UserStats({ user }) {
   const pct = xpProgress(user.xp, user.level);
+  const nextThreshold = LEVEL_THRESHOLDS[user.level] ?? null;
+  const toNext = nextThreshold != null ? Math.max(0, nextThreshold - user.xp) : null;
   return (
     <div className={`${styles.statsWidget} mb-4`}>
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-        <div>
-          <span className="fw-semibold">{user.username}</span>
-          <span className="ms-2" style={{ fontSize: "0.9rem", color: "var(--frets-text-muted)" }}>
-            Poziom {user.level} · {user.levelLabel}
-          </span>
+      <div className="d-flex align-items-center gap-3 mb-3">
+        <EntityAvatar imageUrl={user.imageUrl} size={54} />
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <span className="fw-semibold fs-5">Cześć, {user.username}!</span>
+            <span className={styles.levelBadge}>Poziom {user.level}</span>
+          </div>
+          <div className="text-muted small">{user.levelLabel}</div>
         </div>
-        <span style={{ fontSize: "0.85rem", color: "var(--frets-text-muted)" }}>
-          {user.xp} XP
-        </span>
+        <div className="text-end" style={{ whiteSpace: "nowrap" }}>
+          <div className="fw-bold">{user.xp} XP</div>
+          <div className="text-muted" style={{ fontSize: "0.72rem" }}>
+            {toNext != null ? `${toNext} XP do awansu` : "Maks. poziom"}
+          </div>
+        </div>
       </div>
 
       {/* pasek XP */}
@@ -91,25 +103,28 @@ function SongCard({ song }) {
   const href = `/songs/${song.artistSlug ?? slugify(song.artist)}/${slugify(song.title)}`;
   return (
     <Card className={`h-100 ${styles.songCard}`}>
-      <Card.Body className="d-flex flex-column">
-        <Card.Title className="mb-1">
-          <Link to={href} className={`stretched-link ${styles.songTitle}`}>
+      <Card.Body className="d-flex align-items-center gap-3">
+        <div className={styles.songCover}>
+          <i className="bi bi-music-note-beamed" />
+        </div>
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+          <Link to={href} className={`stretched-link d-block text-truncate ${styles.songTitle}`}>
             {song.title}
           </Link>
-        </Card.Title>
-        <div className={`mb-2 ${styles.songArtist}`}>{song.artist}</div>
-        <div className="mt-auto d-flex align-items-center gap-2 flex-wrap">
-          {song.genre && (
-            <Badge bg="light" text="secondary" className="border">
-              {song.genre}
-            </Badge>
-          )}
-          {song.positiveVoteWeight > 0 && (
-            <span className="text-muted ms-auto" style={{ fontSize: "0.75rem" }}>
-              <i className="bi bi-hand-thumbs-up me-1" />
-              {song.positiveVoteWeight}
-            </span>
-          )}
+          <div className={`text-truncate ${styles.songArtist}`}>{song.artist}</div>
+          <div className="d-flex align-items-center gap-2 mt-2">
+            {song.genre && (
+              <Badge bg="secondary">
+                {song.genre}
+              </Badge>
+            )}
+            {song.positiveVoteWeight > 0 && (
+              <span className="text-muted ms-auto" style={{ fontSize: "0.75rem" }}>
+                <i className="bi bi-hand-thumbs-up me-1" />
+                {song.positiveVoteWeight}
+              </span>
+            )}
+          </div>
         </div>
       </Card.Body>
     </Card>
@@ -190,19 +205,49 @@ export default function Home() {
   return (
     <Container className="mt-4">
 
+      {/* Hero dla niezalogowanych */}
+      {!user && (
+        <div className={styles.hero}>
+          <div className={styles.heroContent}>
+            <span className={styles.heroEyebrow}>Frets</span>
+            <h1 className={styles.heroTitle}>
+              Akordy i tabulatury,{" "}
+              <span className={styles.heroAccent}>gotowe do grania</span>
+            </h1>
+            <p className={styles.heroSubtitle}>
+              Przeglądaj piosenki, ucz się akordów, nastrój gitarę i śledź swoje
+              postępy — wszystko w jednym miejscu.
+            </p>
+            <div className="d-flex gap-2 flex-wrap">
+              <Button as={Link} to="/register" variant="primary" size="lg">
+                Załóż konto za darmo
+              </Button>
+              <Button as={Link} to="/chords" variant="outline-primary" size="lg">
+                <i className="bi bi-music-note-beamed me-1" />
+                Przeglądaj akordy
+              </Button>
+            </div>
+          </div>
+          <img src={heroImg} alt="" className={styles.heroImg} />
+        </div>
+      )}
+
       {/* Statystyki zalogowanego */}
       {user && <UserStats user={user} />}
 
       {/* Nagłówek + przycisk */}
-      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <h2 className="mb-0">Piosenki</h2>
-        {user && (
-          <Button as={Link} to="/songs/add" variant="primary" size="sm">
-            <i className="bi bi-plus-lg me-1" />
-            Dodaj piosenkę
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Piosenki"
+        className="mb-3"
+        actions={
+          user && (
+            <Button as={Link} to="/songs/add" variant="primary" size="sm">
+              <i className="bi bi-plus-lg me-1" />
+              Dodaj piosenkę
+            </Button>
+          )
+        }
+      />
 
       {/* Wyszukiwarka */}
       <Form onSubmit={handleSearch} className="mb-3">
@@ -259,13 +304,15 @@ export default function Home() {
 
       {/* Lista piosenek */}
       {loading ? (
-        <div className="text-center mt-5">
-          <Spinner animation="border" />
-        </div>
+        <Row className="g-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Col md={6} lg={4} key={i}>
+              <SkeletonCard />
+            </Col>
+          ))}
+        </Row>
       ) : songs.length === 0 ? (
-        <div className="text-center text-muted mt-5">
-          <i className="bi bi-music-note-list" style={{ fontSize: "2rem" }} />
-          <p className="mt-2">Brak piosenek spełniających kryteria.</p>
+        <EmptyState icon="bi-music-note-list" title="Brak piosenek spełniających kryteria.">
           {(search || activeGenre) && (
             <Button variant="outline-secondary" size="sm" onClick={() => {
               setSearch("");
@@ -275,7 +322,7 @@ export default function Home() {
               Wyczyść filtry
             </Button>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <>
           <p className="text-muted mb-3" style={{ fontSize: "0.85rem" }}>

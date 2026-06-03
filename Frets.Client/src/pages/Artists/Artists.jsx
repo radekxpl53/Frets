@@ -1,8 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Card, Col, Container, Form, Row } from "react-bootstrap";
 import api from "../../api/client";
 import EntityAvatar from "../../components/EntityAvatar";
+import EmptyState from "../../components/EmptyState";
+import PageHeader from "../../components/PageHeader";
+import SkeletonCard from "../../components/SkeletonCard";
 import slugify from "../../utils/slugify";
 
 export default function Artists() {
@@ -39,10 +42,10 @@ export default function Artists() {
 
   return (
     <Container className="mt-4">
-      <h2 className="mb-1">Artyści</h2>
-      <p className="text-muted mb-3">
-        Przeglądaj artystów i ich opublikowane piosenki.
-      </p>
+      <PageHeader
+        title="Artyści"
+        subtitle="Przeglądaj artystów i ich opublikowane piosenki."
+      />
 
       {error && <Alert variant="danger">{error}</Alert>}
 
@@ -57,13 +60,18 @@ export default function Artists() {
       />
 
       {loading ? (
-        <div className="text-center mt-5">
-          <Spinner animation="border" />
-        </div>
+        <Row>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Col key={i} sm={6} md={4} lg={3} className="mb-4">
+              <SkeletonCard variant="avatar" />
+            </Col>
+          ))}
+        </Row>
       ) : filtered.length === 0 ? (
-        <p className="text-muted">
-          {search ? "Brak artystów pasujących do wyszukiwania." : "Brak artystów w bazie."}
-        </p>
+        <EmptyState
+          icon="bi-people"
+          title={search ? "Brak artystów pasujących do wyszukiwania." : "Brak artystów w bazie."}
+        />
       ) : (
         <Row>
           {filtered.map((artist) => (

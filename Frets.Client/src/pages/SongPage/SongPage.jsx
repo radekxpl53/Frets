@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Container, Card, Nav, Spinner, Alert, Badge, Row, Col, Button } from "react-bootstrap";
+import { Container, Card, Nav, Alert, Badge, Row, Col, Button } from "react-bootstrap";
 import api from "../../api/client";
 import ChordSheet from "../../components/ChordSheet";
+import Skeleton from "../../components/Skeleton";
 import EntityAvatar from "../../components/EntityAvatar";
 import YouTubeEmbed from "../../components/YouTubeEmbed";
 import SongChordDiagrams from "../../components/SongChordDiagrams";
@@ -48,8 +49,25 @@ function SongPage() {
 
   if (loading) {
     return (
-      <Container className="mt-5 text-center">
-        <Spinner animation="border" />
+      <Container className="mt-4" style={{ maxWidth: "960px" }}>
+        <Card className="mb-4 shadow-sm">
+          <Card.Body>
+            <div className="d-flex align-items-center gap-3">
+              <Skeleton width={96} height={96} rounded />
+              <div className="flex-grow-1">
+                <Skeleton width="55%" height={26} className="mb-2" />
+                <Skeleton width="32%" height={14} className="mb-3" />
+                <Skeleton width={110} height={24} />
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+        <Card className="shadow-sm">
+          <Card.Body>
+            <Skeleton width="40%" height={14} className="mb-3" />
+            <Skeleton width="100%" height={160} />
+          </Card.Body>
+        </Card>
       </Container>
     );
   }
@@ -74,7 +92,7 @@ function SongPage() {
 
   return (
     <Container className="mt-4" style={{ maxWidth: "960px" }}>
-      <Card className="mb-4 border-0 shadow-sm">
+      <Card className="mb-4 shadow-sm">
         <Card.Body>
           <Row className="align-items-center g-3">
             <Col xs="auto">
@@ -82,14 +100,12 @@ function SongPage() {
             </Col>
             <Col>
               <h2 className="mb-1">{song.title}</h2>
-              <p className="mb-2">
-                <Link
-                  to={`/artists/${artistSlug}`}
-                  className="text-decoration-none fw-semibold"
-                >
-                  {song.artist}
-                </Link>
-              </p>
+              <Link
+                to={`/artists/${artistSlug}`}
+                className="text-decoration-none fw-semibold d-inline-block mb-2"
+              >
+                {song.artist}
+              </Link>
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 {song.genre && <Badge bg="secondary">{song.genre}</Badge>}
                 {suggestionsPath && (
@@ -98,7 +114,9 @@ function SongPage() {
                     to={suggestionsPath}
                     variant="outline-primary"
                     size="sm"
+                    className="ms-auto"
                   >
+                    <i className="bi bi-pencil-square me-1" />
                     Zaproponuj poprawkę
                   </Button>
                 )}

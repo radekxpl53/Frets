@@ -250,7 +250,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
                       {s.authorUsername} · {new Date(s.createdAt).toLocaleString("pl-PL")}
                     </small>
                     <div className="d-flex gap-2 align-items-center">
-                      <Badge bg="light" text="dark" className="fw-normal">
+                      <Badge bg="secondary" className="fw-normal">
                         {formatVoteCounts(s.positiveVoteWeight, s.negativeVoteWeight)}
                       </Badge>
                       <Badge bg={statusVariant(s.status)}>{STATUS_PL[s.status] ?? s.status}</Badge>

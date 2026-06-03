@@ -7,6 +7,7 @@ import ChordSheet from "../../components/ChordSheet";
 import TabSheet from "../../components/TabSheet";
 import { useAuth } from "../../context/AuthContext";
 import VotePanel, { formatVoteCounts } from "../../components/VotePanel";
+import { statusLabel } from "../../utils/statusLabels";
 import slugify from "../../utils/slugify";
 import { getApiError, getSongId, isAdminUser } from "../../utils/apiError";
 
@@ -21,6 +22,7 @@ function DraftPage() {
   const [songVoteLoading, setSongVoteLoading] = useState(false);
   const [error, setError] = useState("");
   const [voteMsg, setVoteMsg] = useState("");
+  const [voteMsgVariant, setVoteMsgVariant] = useState("success");
   const [adminActionLoading, setAdminActionLoading] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
   const [adminMsgVariant, setAdminMsgVariant] = useState("secondary");
@@ -83,8 +85,10 @@ function DraftPage() {
           : prev
       );
       await reloadSong();
+      setVoteMsgVariant("success");
       setVoteMsg(isPositive ? "Oddano głos za publikację szkicu." : "Oddano głos przeciw publikacji szkicu.");
     } catch (err) {
+      setVoteMsgVariant("danger");
       setVoteMsg(typeof err.response?.data === "string" ? err.response.data : "Nie udało się oddać głosu.");
     } finally {
       setSongVoteLoading(false);
@@ -159,9 +163,9 @@ function DraftPage() {
         <h2 className="mb-1">{song.title}</h2>
         <p className="text-muted mb-2">{song.artist}</p>
         <div className="d-flex gap-2 align-items-center mb-2 flex-wrap">
-          <Badge bg={statusVariant(song.status)}>{song.status}</Badge>
+          <Badge bg={statusVariant(song.status)}>{statusLabel(song.status)}</Badge>
           {song.genre && <Badge bg="secondary">{song.genre}</Badge>}
-          <Badge bg="light" text="dark">
+          <Badge bg="secondary">
             {formatVoteCounts(song.positiveVoteWeight, song.negativeVoteWeight)}
           </Badge>
           {activeVersion && (
@@ -194,6 +198,11 @@ function DraftPage() {
               onVote={handleSongVote}
               loading={songVoteLoading}
             />
+            {voteMsg && (
+              <Alert variant={voteMsgVariant} className="py-2 mt-2 mb-0">
+                {voteMsg}
+              </Alert>
+            )}
             {!user && isSongVotingOpen(song.status) && (
               <div className="small text-muted mt-2">Zaloguj się, aby głosować nad szkicem.</div>
             )}

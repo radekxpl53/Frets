@@ -1,11 +1,11 @@
 import { Navbar as BsNavbar, Nav, Container, Button } from "react-bootstrap";
-import { NavLink, Link, useNavigate } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import EntityAvatar from "./EntityAvatar";
+import noteIcon from "../assets/music-note.svg";
 
 function Navbar() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const navLinkClass = ({ isActive }) =>
     "nav-link" + (isActive ? " active" : "");
@@ -13,7 +13,8 @@ function Navbar() {
   return (
     <BsNavbar bg="dark" variant="dark" expand="lg">
       <Container>
-        <BsNavbar.Brand as={Link} to="/">
+        <BsNavbar.Brand as={Link} to="/" className="d-inline-flex align-items-center gap-2">
+          <img src={noteIcon} alt="" style={{ height: 24, width: "auto", display: "block" }} />
           Frets
         </BsNavbar.Brand>
 

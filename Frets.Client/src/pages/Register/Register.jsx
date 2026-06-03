@@ -51,7 +51,7 @@ function Register() {
   };
 
   return (
-    <Container style={{ maxWidth: "400px" }} className="mt-5">
+    <Container style={{ maxWidth: "400px" }} className="auth-screen">
       <Card>
         <Card.Body>
           {success ? (

@@ -48,7 +48,7 @@ function ResetPassword() {
 
   if (!token) {
     return (
-      <Container style={{ maxWidth: "400px" }} className="mt-5">
+      <Container style={{ maxWidth: "400px" }} className="auth-screen">
         <Card>
           <Card.Body>
             <Alert variant="danger" className="mb-0">
@@ -62,7 +62,7 @@ function ResetPassword() {
   }
 
   return (
-    <Container style={{ maxWidth: "400px" }} className="mt-5">
+    <Container style={{ maxWidth: "400px" }} className="auth-screen">
       <Card>
         <Card.Body>
           <h3 className="mb-4 text-center">Nowe hasło</h3>

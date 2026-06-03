@@ -1,14 +1,17 @@
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import ChordDiagram from "../../components/ChordDiagram";
+import PageHeader from "../../components/PageHeader";
 
 const KEYS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 
 function Chords() {
   return (
     <Container className="mt-4">
-      <h2 className="mb-4">Akordy</h2>
-      <p className="text-muted">Wybierz tonację, aby zobaczyć wszystkie akordy z tej rodziny.</p>
+      <PageHeader
+        title="Akordy"
+        subtitle="Wybierz tonację, aby zobaczyć wszystkie akordy z tej rodziny."
+      />
 
       <Row>
         {KEYS.map((key) => (

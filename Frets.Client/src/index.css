@@ -4,6 +4,11 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
 }
 
+/* Margines na dole, żeby treść/kafelki nie przylegały do spodu strony */
+#root {
+  padding-bottom: 3rem;
+}
+
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: 'Outfit', system-ui, sans-serif;
@@ -50,7 +55,9 @@ h1, h2, h3, h4, h5, h6,
 
   /* Linki */
   --bs-link-color:            var(--frets-accent-light);
+  --bs-link-color-rgb:        167, 139, 250;
   --bs-link-hover-color:      #c4b5fd;
+  --bs-link-hover-color-rgb:  196, 181, 253;
 
   /* Inputy */
   --bs-form-control-bg:       var(--frets-surface-2);
@@ -181,6 +188,26 @@ h1, h2, h3, h4, h5, h6,
 .card:hover {
   border-color: rgba(139, 92, 246, 0.35) !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Karty interaktywne (klikalne kafelki: piosenki, akordy, artyści, opracowania)
+   — spójne uniesienie + fioletowa poświata jak na stronie głównej.
+   Karty treści (formularze, strona piosenki, profil) nie są łapane. */
+a.card,
+.card:has(.stretched-link) {
+  cursor: pointer;
+}
+
+a.card:hover,
+.card:has(.stretched-link):hover {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 8px 28px rgba(139, 92, 246, 0.16) !important;
+  transform: translateY(-3px);
+}
+
+a.card:active,
+.card:has(.stretched-link):active {
+  transform: translateY(-1px);
 }
 
 /* ─── Inputy / formularze ────────────────────────────────────────────────── */
@@ -418,6 +445,36 @@ h1, h2, h3, h4, h5, h6,
 [data-bs-theme="dark"] .bg-light {
   background-color: var(--frets-surface-2) !important;
   color: var(--frets-text) !important;
+}
+
+/* ─── Skeleton (placeholdery ładowania) ───────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--frets-surface-2) 25%,
+    rgba(139, 92, 246, 0.10) 37%,
+    var(--frets-surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ─── Ekrany logowania / rejestracji — wyśrodkowane w pionie ──────────────── */
+.auth-screen {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ─── Edytor akordów: przezroczysta textarea nad nakładką podświetlania ───── */
