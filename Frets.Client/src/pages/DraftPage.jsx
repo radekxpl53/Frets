@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Container, Nav, Spinner } from "react-bootstrap";
 import api from "../api/client";
+import AdminActionBar from "../components/AdminActionBar";
 import ChordSheet from "../components/ChordSheet";
 import TabSheet from "../components/TabSheet";
 import { useAuth } from "../context/AuthContext";
@@ -175,40 +176,6 @@ function DraftPage() {
           )}
         </div>
 
-        {isAdminUser(user) && song.status !== "approved" && (
-          <Card className="mb-3 border-primary">
-            <Card.Body className="py-3">
-              <Card.Title className="fs-6 mb-2">Panel administratora</Card.Title>
-              <p className="small text-muted mb-2">
-                Możesz natychmiast zatwierdzić lub odrzucić ten szkic, bez czekania na głosowanie społeczności.
-              </p>
-              {adminMsg && (
-                <Alert variant={adminMsgVariant} className="py-2">
-                  {adminMsg}
-                </Alert>
-              )}
-              <div className="d-flex gap-2 flex-wrap">
-                <Button
-                  type="button"
-                  variant="success"
-                  disabled={adminActionLoading}
-                  onClick={() => handleAdminAction("approve")}
-                >
-                  {adminActionLoading ? "Zapisywanie..." : "Zatwierdź piosenkę"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline-danger"
-                  disabled={adminActionLoading}
-                  onClick={() => handleAdminAction("reject")}
-                >
-                  Odrzuć
-                </Button>
-              </div>
-            </Card.Body>
-          </Card>
-        )}
-
         <Card className="mb-3">
           <Card.Body className="py-3">
             <Card.Title className="fs-6 mb-2">Głosowanie nad szkicem</Card.Title>
@@ -228,6 +195,38 @@ function DraftPage() {
             )}
             {user && !isSongVotingOpen(song.status) && (
               <div className="small text-muted mt-2">Głosowanie nad tym szkicem jest zamknięte.</div>
+            )}
+            {isAdminUser(user) && (
+              <>
+                {adminMsg && (
+                  <Alert variant={adminMsgVariant} className="py-2 mt-2 mb-0">
+                    {adminMsg}
+                  </Alert>
+                )}
+                <AdminActionBar
+                  disabled={adminActionLoading}
+                  actions={[
+                    ...(song.status !== "approved" ? [{
+                      label: "Zatwierdź",
+                      icon: "bi-check-lg",
+                      variant: "success",
+                      onClick: () => handleAdminAction("approve"),
+                    }] : []),
+                    ...(song.status !== "rejected" ? [{
+                      label: "Odrzuć",
+                      icon: "bi-x-lg",
+                      variant: "outline-danger",
+                      onClick: () => handleAdminAction("reject"),
+                    }] : []),
+                    ...((song.status === "approved" || song.status === "rejected") ? [{
+                      label: "Wróć do pending",
+                      icon: "bi-arrow-counterclockwise",
+                      variant: "outline-secondary",
+                      onClick: () => handleAdminAction("pending"),
+                    }] : []),
+                  ]}
+                />
+              </>
             )}
           </Card.Body>
         </Card>

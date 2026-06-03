@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { Container, Card, Nav, Spinner, Alert, Badge, Row, Col, Button } from "react-bootstrap";
 import api from "../api/client";
 import ChordSheet from "../components/ChordSheet";
@@ -9,6 +10,7 @@ import SongChordDiagrams from "../components/SongChordDiagrams";
 import TabSheet from "../components/TabSheet";
 function SongPage() {
   const { artist, title } = useParams();
+  const { user } = useAuth();
 
   const [song, setSong] = useState(null);
   const [versions, setVersions] = useState([]);
@@ -27,6 +29,7 @@ function SongPage() {
         ]);
         setSong(songRes.data);
         setVersions(versionsRes.data);
+        document.title = `${songRes.data.title} – ${songRes.data.artist} | Frets`;
 
         if (versionsRes.data.length > 0) {
           const preferred =
@@ -112,9 +115,20 @@ function SongPage() {
       )}
 
       {versions.length === 0 ? (
-        <Alert variant="info">
-          Ta piosenka nie ma jeszcze dodanych akordów ani tabulatury.
-        </Alert>
+        <div className="text-center py-5 text-muted">
+          <i className="bi bi-music-note-list" style={{ fontSize: "2.5rem" }} />
+          <p className="mt-2 mb-3">Ta piosenka nie ma jeszcze dodanych akordów ani tabulatury.</p>
+          {user ? (
+            <Link to="/songs/add" className="btn btn-primary btn-sm">
+              <i className="bi bi-plus-lg me-1" />
+              Dodaj akordy lub tabulaturę
+            </Link>
+          ) : (
+            <p className="small">
+              <Link to="/login">Zaloguj się</Link>, aby dodać akordy lub tabulaturę.
+            </p>
+          )}
+        </div>
       ) : (
         <Card className="shadow-sm">
           {(hasChords && hasTab) && (

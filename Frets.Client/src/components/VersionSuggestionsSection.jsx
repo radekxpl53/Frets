@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Form } from "react-bootstrap";
 import api from "../api/client";
+import AdminActionBar from "./AdminActionBar";
 import ChordLyricsEditor from "./ChordLyricsEditor";
 import ChordSheet from "./ChordSheet";
 import FormField from "./FormField";
@@ -15,8 +16,10 @@ import {
 } from "../utils/chordEditorUtils";
 import { validateRequired } from "../utils/validation";
 
+const STATUS_PL = { pending: "Oczekuje", approved: "Zatwierdzona", rejected: "Odrzucona" };
+
 function statusVariant(status) {
-  if (status === "pending") return "warning";
+  if (status === "pending")  return "warning";
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
   return "secondary";
@@ -29,6 +32,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
   const [chordEditorText, setChordEditorText] = useState("");
   const [allChords, setAllChords] = useState([]);
   const [voteLoadingId, setVoteLoadingId] = useState(null);
+  const [adminActionId, setAdminActionId] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [voteMsg, setVoteMsg] = useState("");
   const suggestionErrors = useFormErrors();
@@ -75,6 +79,22 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
       setChordEditorText("");
     }
   }, [activeVersion?.id, activeVersion?.versionType, activeVersion?.content]);
+
+  const handleAdminAction = async (suggestionId, action) => {
+    setVoteMsg("");
+    setAdminActionId(suggestionId);
+    try {
+      await api.post(`/admin/suggestions/${suggestionId}/${action}`);
+      setVoteMsg(action === "approve" ? "Propozycja zatwierdzona." : "Propozycja odrzucona.");
+      await reloadSuggestions();
+    } catch (err) {
+      setVoteMsg(
+        typeof err.response?.data === "string" ? err.response.data : "Operacja nie powiodła się.",
+      );
+    } finally {
+      setAdminActionId(null);
+    }
+  };
 
   const reloadSuggestions = async () => {
     if (!activeVersion?.id) return;
@@ -233,7 +253,7 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
                       <Badge bg="light" text="dark" className="fw-normal">
                         {formatVoteCounts(s.positiveVoteWeight, s.negativeVoteWeight)}
                       </Badge>
-                      <Badge bg={statusVariant(s.status)}>{s.status}</Badge>
+                      <Badge bg={statusVariant(s.status)}>{STATUS_PL[s.status] ?? s.status}</Badge>
                     </div>
                   </div>
                   {s.comment && <p className="mb-2">{s.comment}</p>}
@@ -268,6 +288,25 @@ function VersionSuggestionsSection({ activeVersion, user, sectionId = "song-sugg
                         <div className="small text-muted">Zaloguj się, aby głosować nad propozycją.</div>
                       )}
                     </div>
+                  )}
+                  {user?.role === "admin" && s.status === "pending" && (
+                    <AdminActionBar
+                      disabled={adminActionId === s.id}
+                      actions={[
+                        {
+                          label: "Zatwierdź",
+                          icon: "bi-check-lg",
+                          variant: "success",
+                          onClick: () => handleAdminAction(s.id, "approve"),
+                        },
+                        {
+                          label: "Odrzuć",
+                          icon: "bi-x-lg",
+                          variant: "outline-danger",
+                          onClick: () => handleAdminAction(s.id, "reject"),
+                        },
+                      ]}
+                    />
                   )}
                 </Card.Body>
               </Card>

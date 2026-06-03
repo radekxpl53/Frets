@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
+import { Modal } from "react-bootstrap";
 import { Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import api from "../api/client";
 import ChordLyricsEditor from "../components/ChordLyricsEditor";
@@ -31,7 +32,24 @@ function AddSong() {
   const [tunings, setTunings] = useState([]);
   const [metaLoading, setMetaLoading] = useState(true);
 
-  const [loading, setLoading] = useState(false);
+  const [loading,   setLoading]   = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // isDirty: formularz ma jakąś treść
+  const isDirty = !submitted && (
+    title.trim() !== "" || artist.trim() !== "" ||
+    chordEditorText.trim() !== "" || tabContent.trim() !== ""
+  );
+
+  // Blokada nawigacji wewnątrz SPA
+  const blocker = useBlocker(isDirty);
+
+  // Blokada przeładowania / zamknięcia karty
+  useEffect(() => {
+    const handler = (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
   const {
     clearErrors,
     setFieldError,
@@ -184,6 +202,7 @@ function AddSong() {
     try {
       const res = await api.post("/songs", payload);
       localStorage.removeItem(DRAFT_KEY);
+      setSubmitted(true);
       const status = res.data?.status?.toLowerCase();
       const songPath = `${slugify(artist)}/${slugify(title)}`;
       navigate(status === "approved" ? `/songs/${songPath}` : `/drafts/${songPath}`);
@@ -363,6 +382,24 @@ function AddSong() {
           </Form>
         </Card.Body>
       </Card>
+
+      {/* Modal: potwierdzenie opuszczenia formularza */}
+      <Modal show={blocker.state === "blocked"} onHide={() => blocker.reset()} centered size="sm">
+        <Modal.Header closeButton>
+          <Modal.Title className="fs-6">Opuścić formularz?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Masz niezapisane zmiany. Jeśli opuścisz tę stronę, dane zostaną utracone.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" size="sm" onClick={() => blocker.reset()}>
+            Zostań
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => blocker.proceed()}>
+            Opuść
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }

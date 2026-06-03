@@ -99,6 +99,7 @@ export default function Tuner() {
     }
   };
 
+  useEffect(() => { document.title = "Stroik gitarowy | Frets"; }, []);
   useEffect(() => () => stop(), [stop]);
 
   const silent = !result;

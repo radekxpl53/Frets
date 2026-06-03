@@ -1,5 +1,5 @@
 import { Navbar as BsNavbar, Nav, Container, Button } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
@@ -11,10 +11,14 @@ function Navbar() {
     navigate("/");
   };
 
+  // NavLink dodaje klasę "active" automatycznie gdy ścieżka pasuje
+  const navLinkClass = ({ isActive }) =>
+    "nav-link" + (isActive ? " active" : "");
+
   return (
     <BsNavbar bg="dark" variant="dark" expand="lg">
       <Container>
-        <BsNavbar.Brand as={Link} to="/">
+        <BsNavbar.Brand as={NavLink} to="/">
           Frets
         </BsNavbar.Brand>
 
@@ -22,49 +26,54 @@ function Navbar() {
 
         <BsNavbar.Collapse id="main-nav">
           <Nav className="me-auto">
-            <Nav.Link as={Link} to="/">
+            <NavLink to="/" end className={navLinkClass}>
               Piosenki
-            </Nav.Link>
-            <Nav.Link as={Link} to="/artists">
+            </NavLink>
+            <NavLink to="/artists" className={navLinkClass}>
               Artyści
-            </Nav.Link>
-            <Nav.Link as={Link} to="/chords">
+            </NavLink>
+            <NavLink to="/chords" className={navLinkClass}>
               Akordy
-            </Nav.Link>
-            <Nav.Link as={Link} to="/tuner">
+            </NavLink>
+            <NavLink to="/tuner" className={navLinkClass}>
               Stroik
-            </Nav.Link>
-            <Nav.Link as={Link} to="/drafts">
+            </NavLink>
+            <NavLink to="/drafts" className={navLinkClass}>
               Opracowania
-            </Nav.Link>
+            </NavLink>
           </Nav>
 
           <Nav>
             {user ? (
               <>
-                <Nav.Link as={Link} to="/songs/add">
+                <NavLink to="/songs/add" className={navLinkClass}>
                   Dodaj piosenkę
-                </Nav.Link>
-                <Nav.Link as={Link} to="/profile">
+                </NavLink>
+                <NavLink to="/profile" className={navLinkClass}>
                   {user.username} ({user.level} lvl)
-                </Nav.Link>
+                </NavLink>
                 {user.role === "admin" && (
-                  <Nav.Link as={Link} to="/admin">
+                  <NavLink to="/admin" className={navLinkClass}>
                     Admin
-                  </Nav.Link>
+                  </NavLink>
                 )}
-                <Button variant="outline-light" size="sm" onClick={handleLogout} className="ms-2">
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="ms-2"
+                >
                   Wyloguj
                 </Button>
               </>
             ) : (
               <>
-                <Nav.Link as={Link} to="/login">
+                <NavLink to="/login" className={navLinkClass}>
                   Logowanie
-                </Nav.Link>
-                <Nav.Link as={Link} to="/register">
+                </NavLink>
+                <NavLink to="/register" className={navLinkClass}>
                   Rejestracja
-                </Nav.Link>
+                </NavLink>
               </>
             )}
           </Nav>

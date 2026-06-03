@@ -264,7 +264,7 @@ function ProfilePage() {
 
   const statusVariant = (status) => {
     const s = (status ?? "draft").toLowerCase();
-    if (s === "pending") return "warning";
+    if (s === "pending")  return "warning";
     if (s === "approved") return "success";
     if (s === "rejected") return "danger";
     return "secondary";
@@ -375,7 +375,7 @@ function ProfilePage() {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="drafts" onClick={() => setActiveTab("drafts")} style={{ cursor: "pointer" }}>
-                Opracowania ({drafts.length})
+                Szkice ({drafts.length})
               </Nav.Link>
             </Nav.Item>
           </Nav>
@@ -399,7 +399,9 @@ function ProfilePage() {
                     <span className="fw-semibold">{song.title}</span>
                     <span className="text-muted"> · {song.artist}</span>
                   </div>
-                  <Badge bg={statusVariant(song.status)}>{song.status ?? "draft"}</Badge>
+                  <Badge bg={statusVariant(song.status)}>
+                    {{ draft: "Szkic", pending: "Oczekuje", approved: "Zatwierdzona", rejected: "Odrzucona" }[song.status ?? "draft"] ?? song.status}
+                  </Badge>
                 </ListGroup.Item>
               ))}
             </ListGroup>
