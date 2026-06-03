@@ -131,7 +131,7 @@ export function buildHighlightedEditorHtml(chordEditorText, chordSet) {
         const end = start + token.length;
         result += escapeHtml(line.slice(lastIndex, start));
         if (isPureChordLine && isLikelyChordToken(token, chordSet)) {
-          result += `<span style="color:#0d6efd;font-weight:700">${escapeHtml(token)}</span>`;
+          result += `<span style="color:var(--frets-accent-light);font-weight:700">${escapeHtml(token)}</span>`;
         } else {
           result += escapeHtml(token);
         }

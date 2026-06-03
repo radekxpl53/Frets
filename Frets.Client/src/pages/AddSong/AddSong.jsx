@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useBlocker } from "react-router-dom";
-import { Modal } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import api from "../../api/client";
 import ChordLyricsEditor from "../../components/ChordLyricsEditor";
@@ -40,9 +39,6 @@ function AddSong() {
     title.trim() !== "" || artist.trim() !== "" ||
     chordEditorText.trim() !== "" || tabContent.trim() !== ""
   );
-
-  // Blokada nawigacji wewnątrz SPA
-  const blocker = useBlocker(isDirty);
 
   // Blokada przeładowania / zamknięcia karty
   useEffect(() => {
@@ -382,24 +378,6 @@ function AddSong() {
           </Form>
         </Card.Body>
       </Card>
-
-      {/* Modal: potwierdzenie opuszczenia formularza */}
-      <Modal show={blocker.state === "blocked"} onHide={() => blocker.reset()} centered size="sm">
-        <Modal.Header closeButton>
-          <Modal.Title className="fs-6">Opuścić formularz?</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Masz niezapisane zmiany. Jeśli opuścisz tę stronę, dane zostaną utracone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" size="sm" onClick={() => blocker.reset()}>
-            Zostań
-          </Button>
-          <Button variant="danger" size="sm" onClick={() => blocker.proceed()}>
-            Opuść
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 }

@@ -186,7 +186,11 @@ function DraftPage() {
               positive={song.positiveVoteWeight ?? 0}
               negative={song.negativeVoteWeight ?? 0}
               userVote={song.userVoteIsPositive}
-              canVote={Boolean(user) && isSongVotingOpen(song.status)}
+              canVote={
+                Boolean(user) &&
+                user.username !== song.authorUsername &&
+                isSongVotingOpen(song.status)
+              }
               onVote={handleSongVote}
               loading={songVoteLoading}
             />
@@ -195,6 +199,9 @@ function DraftPage() {
             )}
             {user && !isSongVotingOpen(song.status) && (
               <div className="small text-muted mt-2">Głosowanie nad tym szkicem jest zamknięte.</div>
+            )}
+            {user && user.username === song.authorUsername && isSongVotingOpen(song.status) && (
+              <div className="small text-muted mt-2">Nie możesz głosować nad własnym szkicem.</div>
             )}
             {isAdminUser(user) && (
               <>

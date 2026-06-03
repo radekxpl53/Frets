@@ -16,6 +16,7 @@ import Drafts from "./pages/Drafts/Drafts";
 import DraftPage from "./pages/DraftPage/DraftPage";
 import Admin from "./pages/Admin/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Chords from "./pages/Chords/Chords";
 import ChordFamily from "./pages/ChordFamily/ChordFamily";
 import Artists from "./pages/Artists/Artists";
@@ -34,6 +35,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -76,8 +78,8 @@ function App() {
             }
           />
         </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
-      
     </AuthProvider>
   );
 }

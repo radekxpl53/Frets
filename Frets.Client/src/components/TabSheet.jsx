@@ -15,11 +15,14 @@ function TabSheet({ content }) {
     );
   }
 
-  // Fallback if it is JSON but not in the tab sections format
+  // Fallback if it is JSON but not in the tab sections format.
+  // Starsze tabulatury miały format { type, ascii, measures } — pokaż pole ascii,
+  // a nie surowy obiekt JSON.
   if (!data.sections || data.sections.length === 0) {
+    const fallbackText = typeof data.ascii === "string" ? data.ascii : content;
     return (
       <pre style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: "14px" }}>
-        {content}
+        {fallbackText}
       </pre>
     );
   }
