@@ -1,0 +1,5 @@
+.chordCard { background: var(--frets-surface) !important; border: 1px solid var(--frets-border) !important; border-radius: 10px !important; transition: border-color 0.2s, transform 0.15s; }
+.chordCard:hover { border-color: rgba(139,92,246,0.4) !important; transform: translateY(-2px); }
+.chordName { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.95rem; }
+.statBox { border: 1px solid var(--frets-border); border-radius: 8px; padding: 0.5rem 0.75rem; text-align: center; background: var(--frets-surface-2); }
+.statNum { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 700; line-height: 1.1; }

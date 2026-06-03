@@ -1,0 +1,5 @@
+.header { background: var(--frets-surface); border: 1px solid var(--frets-border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.songTitle { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.8rem; margin-bottom: 0.1rem; }
+.artistName { color: var(--frets-accent-light); font-size: 1rem; text-decoration: none !important; }
+.artistName:hover { color: #c4b5fd; }
+.sheetCard { background: var(--frets-surface) !important; border: 1px solid var(--frets-border) !important; border-radius: 12px !important; }

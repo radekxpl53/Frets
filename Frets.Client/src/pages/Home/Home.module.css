@@ -1,0 +1,21 @@
+.statsWidget {
+  background: linear-gradient(135deg, #1a1830 0%, #141228 100%);
+  border: 1px solid var(--frets-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.2s;
+}
+.statsWidget:hover { border-color: rgba(139,92,246,0.35); }
+
+.xpBar { height: 6px; background: var(--frets-surface-2); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
+.xpBarFill { height: 100%; background: linear-gradient(90deg, var(--frets-accent), var(--frets-accent-light)); border-radius: 3px; transition: width 0.4s ease; }
+
+.statTile { background: var(--frets-surface-2); border: 1px solid var(--frets-border); border-radius: 8px; padding: 0.6rem; text-align: center; transition: border-color 0.2s; }
+.statTile:hover { border-color: rgba(139,92,246,0.3); }
+.statValue { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
+.statLabel { font-size: 0.72rem; color: var(--frets-text-muted); margin-top: 2px; }
+
+.songCard { background: var(--frets-surface) !important; border: 1px solid var(--frets-border) !important; border-radius: 10px !important; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; }
+.songCard:hover { border-color: rgba(139,92,246,0.4) !important; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139,92,246,0.1) !important; }
+.songTitle { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--frets-accent-light) !important; text-decoration: none !important; }
+.songArtist { font-size: 0.82rem; color: var(--frets-text-muted); }

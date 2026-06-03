@@ -30,7 +30,7 @@ function ChordDiagram({ chordKey, suffix }) {
   const position = chordData.positions[0];
 
   return (
-    <div style={{ width: "120px" }}>
+    <div className="chord-diagram" style={{ width: "120px" }}>
       <Chord chord={position} instrument={instrument} lite={false} />
     </div>
   );
