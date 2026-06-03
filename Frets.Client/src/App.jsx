@@ -22,6 +22,8 @@ import Artists from "./pages/Artists";
 import ArtistPage from "./pages/ArtistPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProfileRedirect from "./pages/ProfileRedirect";
+import Tuner from "./pages/Tuner";
+import { Navigate } from "react-router-dom";
 
 function Placeholder({ name }) {
   return <div className="container mt-4"><h2>{name}</h2></div>;
@@ -63,6 +65,8 @@ function App() {
           } />
           <Route path="/chords" element={<Chords />} />
           <Route path="/chords/:key" element={<ChordFamily />} />
+          <Route path="/tuner" element={<Tuner />} />
+          <Route path="/learn" element={<Navigate to="/chords" replace />} />
           <Route
             path="/admin"
             element={
