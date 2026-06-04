@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
 import Login from "./pages/Login/Login";
@@ -24,62 +24,73 @@ import ArtistPage from "./pages/ArtistPage/ArtistPage";
 import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import ProfileRedirect from "./pages/ProfileRedirect/ProfileRedirect";
 import Tuner from "./pages/Tuner/Tuner";
-import { Navigate } from "react-router-dom";
 
-function Placeholder({ name }) {
-  return <div className="container mt-4"><h2>{name}</h2></div>;
+function Layout() {
+  return (
+    <>
+      <Navbar />
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
+    </>
+  );
 }
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: "/", element: <Home /> },
+      { path: "/login", element: <Login /> },
+      { path: "/register", element: <Register /> },
+      { path: "/confirm-email", element: <ConfirmEmail /> },
+      { path: "/confirm-email-change", element: <ConfirmEmailChange /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password", element: <ResetPassword /> },
+      { path: "/drafts", element: <Drafts /> },
+      { path: "/drafts/:artist/:title/suggestions", element: <VersionSuggestionsPage /> },
+      { path: "/drafts/:artist/:title", element: <DraftPage /> },
+      { path: "/artists", element: <Artists /> },
+      { path: "/artists/:slug", element: <ArtistPage /> },
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <ProfileRedirect />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/users/:slug", element: <ProfilePage /> },
+      { path: "/songs/:artist/:title/suggestions", element: <VersionSuggestionsPage /> },
+      { path: "/songs/:artist/:title", element: <SongPage /> },
+      {
+        path: "/songs/add",
+        element: (
+          <ProtectedRoute>
+            <AddSong />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/chords", element: <Chords /> },
+      { path: "/chords/:key", element: <ChordFamily /> },
+      { path: "/tuner", element: <Tuner /> },
+      { path: "/learn", element: <Navigate to="/chords" replace /> },
+      {
+        path: "/admin",
+        element: (
+          <ProtectedRoute adminOnly>
+            <Admin />
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
+]);
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Navbar />
-        <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/confirm-email" element={<ConfirmEmail />} />
-          <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/drafts" element={<Drafts />} />
-          <Route path="/drafts/:artist/:title/suggestions" element={<VersionSuggestionsPage />} />
-          <Route path="/drafts/:artist/:title" element={<DraftPage />} />
-          <Route path="/artists" element={<Artists />} />
-          <Route path="/artists/:slug" element={<ArtistPage />} />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfileRedirect />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/users/:slug" element={<ProfilePage />} />
-          <Route path="/songs/:artist/:title/suggestions" element={<VersionSuggestionsPage />} />
-          <Route path="/songs/:artist/:title" element={<SongPage />} />
-          <Route path="/songs/add" element={
-            <ProtectedRoute>
-              <AddSong />
-            </ProtectedRoute>
-          } />
-          <Route path="/chords" element={<Chords />} />
-          <Route path="/chords/:key" element={<ChordFamily />} />
-          <Route path="/tuner" element={<Tuner />} />
-          <Route path="/learn" element={<Navigate to="/chords" replace />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        </ErrorBoundary>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
 }

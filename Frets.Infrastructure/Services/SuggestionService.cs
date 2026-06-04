@@ -8,10 +8,12 @@ namespace Frets.Infrastructure.Services;
 public class SuggestionService
 {
     private readonly AppDbContext _context;
+    private readonly ChordIndexer _chordIndexer;
 
-    public SuggestionService(AppDbContext context)
+    public SuggestionService(AppDbContext context, ChordIndexer chordIndexer)
     {
         _context = context;
+        _chordIndexer = chordIndexer;
     }
 
     public async Task<List<CommunityFeedItemDto>> GetCommunityFeedAsync(
@@ -106,8 +108,10 @@ public class SuggestionService
 
     private static bool IsOpenSuggestionStatus(string? status)
     {
+        // W feedzie „Opracowania" pokazujemy tylko czekające na przegląd —
+        // zatwierdzone i odrzucone poprawki znikają.
         if (string.IsNullOrWhiteSpace(status)) return true;
-        return status.Trim().ToLowerInvariant() != "rejected";
+        return status.Trim().ToLowerInvariant() == "pending";
     }
 
     private async Task<List<CommunityFeedItemDto>> GetChangeFeedItemsAsync(string? search, Guid? userId)
@@ -197,8 +201,9 @@ public class SuggestionService
 
     public async Task<List<SuggestionResponse>> GetByVersionAsync(Guid versionId, Guid? userId = null)
     {
+        // Tylko otwarte propozycje — zatwierdzone/odrzucone nie są zwracane.
         return await _context.VersionSuggestions
-            .Where(s => s.VersionId == versionId)
+            .Where(s => s.VersionId == versionId && s.Status == "pending")
             .Include(s => s.Author)
             .Select(s => new SuggestionResponse(
                 s.Id,
@@ -312,6 +317,8 @@ public class SuggestionService
                     .FirstOrDefaultAsync(vc => vc.VersionId == suggestion.VersionId);
                 if (versionChords != null)
                     versionChords.Content = suggestion.Content;
+                // Treść wersji się zmieniła — odśwież indeks akordów ("możesz zagrać").
+                await _chordIndexer.IndexAsync(suggestion.VersionId, suggestion.Content);
             }
             else
             {
@@ -349,6 +356,8 @@ public class SuggestionService
                     .FirstOrDefaultAsync(vc => vc.VersionId == suggestion.VersionId);
                 if (versionChords != null)
                     versionChords.Content = suggestion.Content;
+                // Treść wersji się zmieniła — odśwież indeks akordów ("możesz zagrać").
+                await _chordIndexer.IndexAsync(suggestion.VersionId, suggestion.Content);
             }
             else
             {

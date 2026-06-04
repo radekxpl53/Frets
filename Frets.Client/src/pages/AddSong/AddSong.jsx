@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Card, Container, Form, Spinner } from "react-bootstrap";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useBlocker } from "react-router-dom";
+import { Button, Card, Container, Form, Modal, Spinner } from "react-bootstrap";
 import api from "../../api/client";
 import ChordLyricsEditor from "../../components/ChordLyricsEditor";
 import VersionContentEditor from "../../components/VersionContentEditor";
@@ -40,6 +40,17 @@ function AddSong() {
   const isDirty = !submitted && (
     title.trim() !== "" || artist.trim() !== "" ||
     chordEditorText.trim() !== "" || tabContent.trim() !== ""
+  );
+
+  // Blokada nawigacji wewnątrz SPA (wymaga data routera — patrz App.jsx).
+  // Pomijamy własne przekierowanie po zapisie (skipNavBlockRef), bo `submitted`
+  // aktualizuje się asynchronicznie i blocker zdążyłby złapać nasz navigate().
+  const skipNavBlockRef = useRef(false);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty &&
+      !skipNavBlockRef.current &&
+      currentLocation.pathname !== nextLocation.pathname
   );
 
   // Blokada przeładowania / zamknięcia karty
@@ -201,6 +212,7 @@ function AddSong() {
       const res = await api.post("/songs", payload);
       localStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
+      skipNavBlockRef.current = true; // nie blokuj przekierowania po udanym zapisie
       const status = res.data?.status?.toLowerCase();
       const songPath = `${slugify(artist)}/${slugify(title)}`;
       navigate(status === "approved" ? `/songs/${songPath}` : `/drafts/${songPath}`);
@@ -380,6 +392,24 @@ function AddSong() {
           </Form>
         </Card.Body>
       </Card>
+
+      {/* Potwierdzenie opuszczenia formularza z niezapisanymi zmianami */}
+      <Modal show={blocker.state === "blocked"} onHide={() => blocker.reset?.()} centered size="sm">
+        <Modal.Header closeButton>
+          <Modal.Title className="fs-6">Opuścić formularz?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Masz niezapisane zmiany. Jeśli opuścisz tę stronę, dane zostaną utracone.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" size="sm" onClick={() => blocker.reset?.()}>
+            Zostań
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => blocker.proceed?.()}>
+            Opuść
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }

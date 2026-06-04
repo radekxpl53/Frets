@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Frets.Core.Entities;
 using Frets.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +35,7 @@ public class ChordIndexer
         // 2) Fallback po nazwie akordu (np. "C", "Am") — naprawia dane bez chordId
         var names = refs
             .Where(r => !string.IsNullOrWhiteSpace(r.Name))
-            .Select(r => r.Name!.Trim().ToLowerInvariant())
+            .Select(r => NormalizeChordName(r.Name!).ToLowerInvariant())
             .ToHashSet();
         if (names.Count > 0)
         {
@@ -69,6 +70,25 @@ public class ChordIndexer
         suffix == "major" ? key
         : suffix == "minor" ? key + "m"
         : key + suffix;
+
+    // Polska notacja: mała litera rdzenia = molowy (a → Am), o ile nie podano
+    // już jawnej jakości literowej. Spójne z frontendem (normalizeChordName).
+    private static string NormalizeChordName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return name;
+        var m = Regex.Match(name.Trim(), @"^([A-Ga-g])([#b]?)(.*)$");
+        if (!m.Success) return name.Trim();
+        var root = m.Groups[1].Value;
+        var acc = m.Groups[2].Value;
+        var rest = m.Groups[3].Value;
+        var isLower = root == root.ToLowerInvariant();
+        var outName = root.ToUpperInvariant() + acc;
+        if (isLower && (rest.Length == 0 || Regex.IsMatch(rest, @"^[\d/]")))
+            outName += "m" + rest;
+        else
+            outName += rest;
+        return outName;
+    }
 
     private readonly record struct ChordRef(Guid? Id, string? Name);
 

@@ -1,3 +1,5 @@
+import { normalizeChordName } from "../utils/chordNameUtils";
+
 function ChordSheet({ content }) {
   let data;
   try {
@@ -20,7 +22,8 @@ function ChordSheet({ content }) {
       if (line.length < c.offset) {
         line += " ".repeat(c.offset - line.length);
       }
-      line += c.chord;
+      // Normalizacja do czytelnej, standardowej nazwy: "a" → "Am", "d" → "Dm"
+      line += normalizeChordName(c.chord);
     }
     return line;
   };

@@ -105,9 +105,7 @@ function SongCard({ song }) {
   return (
     <Card className={`h-100 ${styles.songCard}`}>
       <Card.Body className="d-flex align-items-center gap-3">
-        <div className={styles.songCover}>
-          <i className="bi bi-music-note-beamed" />
-        </div>
+        <EntityAvatar imageUrl={song.artistImageUrl} size={46} />
         <div className="flex-grow-1" style={{ minWidth: 0 }}>
           <Link to={href} className={`stretched-link d-block text-truncate ${styles.songTitle}`}>
             {song.title}

@@ -4,6 +4,27 @@ export function chordDisplayName(key, suffix) {
   return `${key}${suffix}`;
 }
 
+/**
+ * Normalizuje nazwę akordu do postaci standardowej (do dopasowania w bazie).
+ * Polska notacja: mała litera rdzenia = molowy (a → Am, d → Dm, c# → C#m),
+ * o ile nie podano już jawnej jakości literowej (np. "asus4" → "Asus4").
+ * Wielka litera bez "m" pozostaje durowa.
+ */
+export function normalizeChordName(name) {
+  if (!name) return name;
+  const m = name.trim().match(/^([A-Ga-g])([#b]?)(.*)$/);
+  if (!m) return name;
+  const [, root, accidental, rest] = m;
+  const isLowerRoot = root === root.toLowerCase();
+  let out = root.toUpperCase() + accidental;
+  if (isLowerRoot && (rest === "" || /^[\d/]/.test(rest))) {
+    out += `m${rest}`; // a → Am, a7 → Am7, a/C → Am/C
+  } else {
+    out += rest;
+  }
+  return out;
+}
+
 export function extractChordNamesFromContent(content) {
   if (!content?.trim()) return [];
 
@@ -38,7 +59,7 @@ export function matchChordNamesToLibrary(chordNames, libraryChords) {
   const seen = new Set();
 
   for (const name of chordNames) {
-    const chord = lookup.get(name.toLowerCase());
+    const chord = lookup.get(normalizeChordName(name).toLowerCase());
     if (!chord) continue;
 
     const id = `${chord.key}:${chord.suffix}`;

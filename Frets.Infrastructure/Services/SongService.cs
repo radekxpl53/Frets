@@ -43,7 +43,17 @@ public class SongService
                 s.Title.ToLower().Contains(search.ToLower()) ||
                 s.Artist.Name.ToLower().Contains(search.ToLower()));
 
-        return await query
+        var songs = await query.ToListAsync();
+
+        // Batch: obrazy artystów (jeden na artystę) — bez N+1.
+        var artistIds = songs.Select(s => s.ArtistId).Distinct().ToList();
+        var pathByArtist = await _context.ArtistImages
+            .Where(ai => artistIds.Contains(ai.ArtistId))
+            .Join(_context.Images, ai => ai.ImageId, img => img.Id,
+                (ai, img) => new { ai.ArtistId, img.StoragePath })
+            .ToDictionaryAsync(x => x.ArtistId, x => x.StoragePath);
+
+        return songs
             .Select(s => new SongResponse(
                 s.Id,
                 s.Title,
@@ -51,9 +61,13 @@ public class SongService
                 s.Category != null ? s.Category.Name : s.Genre,
                 s.Status,
                 s.Author.Username,
-                s.SubmittedAt
+                s.SubmittedAt,
+                ArtistSlug: s.Artist.Slug,
+                ArtistImageUrl: pathByArtist.TryGetValue(s.ArtistId, out var p)
+                    ? _imageService.GetPublicUrl(p)
+                    : _imageService.GetDefaultImageUrl()
             ))
-            .ToListAsync();
+            .ToList();
     }
 
     public async Task<List<string>> SuggestTitlesAsync(string search, int limit = 10)

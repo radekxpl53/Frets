@@ -1,4 +1,4 @@
-import { chordDisplayName } from "./chordNameUtils";
+import { chordDisplayName, normalizeChordName } from "./chordNameUtils";
 
 export function createChordSet(allChords) {
   return new Set(allChords.map((chord) => {
@@ -162,12 +162,15 @@ export function buildChordJsonFromEditorText(chordEditorText, allChords) {
     chords.map((c) => {
       const matched = allChords.find((dbChord) => {
         if (typeof dbChord === "string") return false;
-        // Dopasowanie po wyświetlanej nazwie (np. "C", "Am"), tak samo jak przy
-        // wyświetlaniu diagramów — wcześniej sklejano key+suffix ("Cmajor"),
-        // przez co podstawowe akordy nigdy nie dostawały chordId.
-        return chordDisplayName(dbChord.key, dbChord.suffix).toLowerCase() === c.chord.toLowerCase();
+        // Dopasowanie po wyświetlanej nazwie (np. "C", "Am") z normalizacją polskiej
+        // notacji (mała litera = moll: "a" → "Am"). Wcześniej sklejano key+suffix.
+        return (
+          chordDisplayName(dbChord.key, dbChord.suffix).toLowerCase() ===
+          normalizeChordName(c.chord).toLowerCase()
+        );
       });
-      return { chord: c.chord, chordId: matched ? matched.id : null, offset: c.offset };
+      // Zapisujemy czytelną, znormalizowaną nazwę ("a" → "Am") jako nazwę do wyświetlenia.
+      return { chord: normalizeChordName(c.chord), chordId: matched ? matched.id : null, offset: c.offset };
     });
 
   // Podział tekstu na bloki wg nagłówków [Zwrotka] / [Refren] / ...
@@ -212,7 +215,7 @@ function buildChordLineFromOffsets(chords) {
     if (line.length < c.offset) {
       line += " ".repeat(c.offset - line.length);
     }
-    line += c.chord;
+    line += normalizeChordName(c.chord);
   }
   return line.trimEnd();
 }

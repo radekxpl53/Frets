@@ -103,13 +103,24 @@ public class UserService
             .Select(p => p.ChordId)
             .ToListAsync();
 
-        var playableSongs = await _context.Songs
+        var songs = await _context.Songs
             .Where(s => s.Status == "approved")
             .Include(s => s.Artist)
             .Include(s => s.Author)
             .Where(s => s.Versions.Any(v =>
                 v.ChordIndex.Any() &&
                 v.ChordIndex.All(ci => masteredChordIds.Contains(ci.ChordId))))
+            .ToListAsync();
+
+        // Batch: obrazy artystów (jeden na artystę) — bez N+1.
+        var artistIds = songs.Select(s => s.ArtistId).Distinct().ToList();
+        var pathByArtist = await _context.ArtistImages
+            .Where(ai => artistIds.Contains(ai.ArtistId))
+            .Join(_context.Images, ai => ai.ImageId, img => img.Id,
+                (ai, img) => new { ai.ArtistId, img.StoragePath })
+            .ToDictionaryAsync(x => x.ArtistId, x => x.StoragePath);
+
+        return songs
             .Select(s => new SongResponse(
                 s.Id,
                 s.Title,
@@ -117,13 +128,13 @@ public class UserService
                 s.Genre,
                 s.Status,
                 s.Author.Username,
-                s.SubmittedAt
+                s.SubmittedAt,
+                ArtistSlug: s.Artist.Slug,
+                ArtistImageUrl: pathByArtist.TryGetValue(s.ArtistId, out var p)
+                    ? _imageService.GetPublicUrl(p)
+                    : _imageService.GetDefaultImageUrl()
             ))
-            .ToListAsync();
-
-        Console.WriteLine($"[Playable] {playableSongs.Count} playable songs found");
-
-        return playableSongs;
+            .ToList();
     }
 
     public async Task RecordActivityAsync(Guid userId)
@@ -314,6 +325,7 @@ public class UserService
     public async Task<List<UserProfileResponse>> GetAllUsersAdminAsync()
     {
         return await _context.Users
+            .Where(u => !u.IsDeleted)
             .Select(u => new UserProfileResponse(
                 u.Id,
                 u.Username,
