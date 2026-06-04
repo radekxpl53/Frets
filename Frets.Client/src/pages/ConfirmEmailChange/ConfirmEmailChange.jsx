@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Container, Card, Alert, Spinner } from "react-bootstrap";
 import api from "../../api/client";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function ConfirmEmailChange() {
+  usePageTitle("Zmiana adresu email");
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("loading");
 

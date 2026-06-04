@@ -6,8 +6,10 @@ import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
 import { translateApiMessage } from "../../utils/formErrors";
 import { validateRequired } from "../../utils/validation";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function Login() {
+  usePageTitle("Logowanie");
   const { login } = useAuth();
   const navigate = useNavigate();
   const { clearErrors, setFieldErrors, getError, bindText } = useFormErrors();

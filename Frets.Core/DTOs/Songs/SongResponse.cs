@@ -13,5 +13,6 @@ public record SongResponse(
     bool? UserVoteIsPositive = null,
     string? ArtistSlug = null,
     string? ArtistImageUrl = null,
-    string? YouTubeUrl = null
+    string? YouTubeUrl = null,
+    string? AuthorSlug = null
 );

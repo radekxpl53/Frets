@@ -1,14 +1,11 @@
-﻿import { useState, useEffect, useRef } from "react";
-import { Button, Card, Col, Row, Form } from "react-bootstrap";
+import { useState, useEffect, useRef } from "react";
+import { Button } from "react-bootstrap";
 
 const DEFAULT_COLS = 16;
 const STRINGS = ["e", "B", "G", "D", "A", "E"];
+const START_COLS = 8;
 
-const createEmptyMeasure = (cols = DEFAULT_COLS) => {
-  return Array.from({ length: 6 }, () => Array(cols).fill(""));
-};
-
-const deepCloneMeasures = (m) => m.map(measure => measure.map(row => [...row]));
+// ─── ASCII <-> siatka (zachowane dla zgodności / wykrywania trybu) ──────────
 
 export const serializeGridToAscii = (measures) => {
   if (!measures || measures.length === 0) return "";
@@ -20,9 +17,7 @@ export const serializeGridToAscii = (measures) => {
     for (let c = 0; c < cols; c++) {
       let maxLen = 1;
       for (let s = 0; s < 6; s++) {
-        if (measure[s][c] && measure[s][c].length > maxLen) {
-          maxLen = measure[s][c].length;
-        }
+        if (measure[s][c] && measure[s][c].length > maxLen) maxLen = measure[s][c].length;
       }
       colWidths[c] = maxLen;
     }
@@ -34,15 +29,11 @@ export const serializeGridToAscii = (measures) => {
         const width = colWidths[c];
         if (val) {
           strLine += val;
-          if (val.length < width) {
-            strLine += "-".repeat(width - val.length);
-          }
+          if (val.length < width) strLine += "-".repeat(width - val.length);
         } else {
           strLine += "-".repeat(width);
         }
-        if (c < cols - 1) {
-          strLine += "-";
-        }
+        if (c < cols - 1) strLine += "-";
       }
       strLine += "-|";
       return strLine;
@@ -52,29 +43,6 @@ export const serializeGridToAscii = (measures) => {
   });
 
   return lines.join("\n\n");
-};
-
-const serializeGridToJson = (measures) => {
-  return JSON.stringify({
-    type: "tab",
-    measures,
-    ascii: serializeGridToAscii(measures),
-  });
-};
-
-const parseValueToGrid = (value) => {
-  if (!value || !value.trim()) return [];
-
-  try {
-    const data = JSON.parse(value);
-    if (data && Array.isArray(data.measures) && data.measures.length > 0) {
-      return data.measures;
-    }
-  } catch {
-    return parseAsciiToGrid(value);
-  }
-
-  return [];
 };
 
 export const parseAsciiToGrid = (asciiText) => {
@@ -107,9 +75,7 @@ export const parseAsciiToGrid = (asciiText) => {
         for (let s = 0; s < 6; s++) {
           const char = strings[s][charIdx] ?? "-";
           const nextChar = strings[s][charIdx + 1] ?? "";
-          if (/\d/.test(char) && /\d/.test(nextChar)) {
-            width = 2;
-          }
+          if (/\d/.test(char) && /\d/.test(nextChar)) width = 2;
         }
         for (let s = 0; s < 6; s++) {
           const part = (strings[s] ?? "").slice(charIdx, charIdx + width);
@@ -141,317 +107,353 @@ export const parseAsciiToGrid = (asciiText) => {
   return measures;
 };
 
-function VisualTabEditor({ value, onChange }) {
-  const [measures, setMeasures] = useState([]);
-  const [activeCell, setActiveCell] = useState(null);
-  const [colsPerMeasure, setColsPerMeasure] = useState(DEFAULT_COLS);
-  const containerRef = useRef(null);
+// ─── Model kolumnowy (ciągły tab, kreski taktu i sekcje) ────────────────────
 
-  useEffect(() => {
-    const parsed = parseValueToGrid(value);
-    if (parsed.length > 0) {
-      setMeasures(parsed);
-      setColsPerMeasure(parsed[0][0].length);
+const emptyCells = () => ["", "", "", "", "", ""];
+const makeNoteCol = () => ({ bar: false, cells: emptyCells() });
+const cloneCols = (cols) =>
+  cols.map((c) =>
+    c.bar ? { bar: true } : c.section ? { section: true } : { bar: false, cells: [...c.cells] }
+  );
+const startCols = () => Array.from({ length: START_COLS }, makeNoteCol);
+
+const isNoteCol = (c) => c && !c.bar && !c.section;
+
+const nextNoteCol = (cols, from) => {
+  for (let c = from + 1; c < cols.length; c++) if (isNoteCol(cols[c])) return c;
+  return -1;
+};
+const prevNoteCol = (cols, from) => {
+  for (let c = from - 1; c >= 0; c--) if (isNoteCol(cols[c])) return c;
+  return -1;
+};
+
+// Podział kolumn na sekcje (markery {section:true}) — zachowuje indeksy płaskiej tablicy.
+function splitSections(cols) {
+  const groups = [];
+  let cur = [];
+  cols.forEach((col, index) => {
+    if (col.section) {
+      groups.push(cur);
+      cur = [];
     } else {
-      const defaultMeasure = [createEmptyMeasure(DEFAULT_COLS)];
-      setMeasures(defaultMeasure);
-      setColsPerMeasure(DEFAULT_COLS);
-      if (onChange) {
-        onChange(serializeGridToAscii(defaultMeasure));
+      cur.push({ col, index });
+    }
+  });
+  groups.push(cur);
+  return groups;
+}
+
+function asciiToColumns(value) {
+  const measures = parseAsciiToGrid(value);
+  const cols = [];
+  measures.forEach((m, mi) => {
+    if (mi > 0) cols.push({ section: true }); // osobne bloki = osobne sekcje
+    const n = m[0].length;
+    for (let c = 0; c < n; c++) {
+      const cells = m.map((s) => s[c] ?? "");
+      if (cells.every((v) => v === "|")) cols.push({ bar: true });
+      else cols.push({ bar: false, cells });
+    }
+  });
+  // przytnij końcowe puste kolumny nutowe (żeby nie było pustego ogona)
+  while (cols.length > 1) {
+    const last = cols[cols.length - 1];
+    if (isNoteCol(last) && last.cells.every((v) => v === "")) cols.pop();
+    else break;
+  }
+  return cols.length ? cols : startCols();
+}
+
+function blockToAscii(blockCols) {
+  const widths = blockCols.map((col) =>
+    col.bar ? 1 : Math.max(1, ...col.cells.map((v) => (v || "").length))
+  );
+  return STRINGS.map((label, si) => {
+    let line = `${label}|`;
+    blockCols.forEach((col, ci) => {
+      if (col.bar) {
+        line += "|";
+      } else {
+        const tok = col.cells[si] || "-";
+        line += `-${tok}${"-".repeat(widths[ci] - tok.length)}`;
       }
-    }
-  }, [value === ""]);
+    });
+    line += "-|";
+    return line;
+  }).join("\n");
+}
 
-  const updateAndSave = (nextMeasures) => {
-    setMeasures(nextMeasures);
-    if (onChange) {
-      onChange(serializeGridToAscii(nextMeasures));
-    }
+function columnsToAscii(cols) {
+  // Sekcje → osobne bloki rozdzielone pustą linią (buildTabJsonFromAscii zrobi z nich sekcje).
+  const groups = [[]];
+  cols.forEach((c) => {
+    if (c.section) groups.push([]);
+    else groups[groups.length - 1].push(c);
+  });
+  return groups
+    .filter((g) => g.length > 0)
+    .map(blockToAscii)
+    .join("\n\n");
+}
+
+// ─── Komponent ──────────────────────────────────────────────────────────────
+
+function VisualTabEditor({ value, onChange }) {
+  const [cols, setCols] = useState(() => asciiToColumns(value));
+  const [active, setActive] = useState(null); // { col, str }
+  const containerRef = useRef(null);
+  const lastEmitted = useRef(undefined);
+
+  const commit = (nextCols) => {
+    const ascii = columnsToAscii(nextCols);
+    lastEmitted.current = ascii;
+    setCols(nextCols);
+    onChange?.(ascii);
   };
 
-  const handleCellClick = (measureIdx, stringIdx, colIdx, e) => {
+  // Synchronizacja z `value` przy zmianie z ZEWNĄTRZ (np. wczytanie treści do
+  // poprawki, restore wersji roboczej, wyczyszczenie). Pomija własne zmiany
+  // (lastEmitted), więc nie resetuje kursora podczas pisania.
+  useEffect(() => {
+    const incoming = value ?? "";
+    if (incoming !== (lastEmitted.current ?? "")) {
+      setCols(asciiToColumns(incoming));
+      setActive(null);
+      lastEmitted.current = incoming;
+    }
+  }, [value]);
+
+  const focusSelf = () => containerRef.current?.focus();
+
+  const clickCell = (col, str, e) => {
     e.stopPropagation();
-    setActiveCell({ measureIdx, stringIdx, colIdx });
-    if (containerRef.current) containerRef.current.focus();
+    setActive({ col, str });
+    focusSelf();
   };
-
-  const handleContainerBlur = () => {};
 
   const handleKeyDown = (e) => {
-    if (!activeCell) return;
-    const { measureIdx, stringIdx, colIdx } = activeCell;
-    const currentMeasure = measures[measureIdx];
-    const totalCols = currentMeasure[0].length;
+    if (!active) return;
+    const { col, str } = active;
+    if (col >= cols.length || !isNoteCol(cols[col])) return;
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (stringIdx > 0) setActiveCell({ measureIdx, stringIdx: stringIdx - 1, colIdx });
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (stringIdx < 5) setActiveCell({ measureIdx, stringIdx: stringIdx + 1, colIdx });
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      if (colIdx > 0) {
-        setActiveCell({ measureIdx, stringIdx, colIdx: colIdx - 1 });
-      } else if (measureIdx > 0) {
-        const prevCols = measures[measureIdx - 1][0].length;
-        setActiveCell({ measureIdx: measureIdx - 1, stringIdx, colIdx: prevCols - 1 });
-      }
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      if (colIdx < totalCols - 1) {
-        setActiveCell({ measureIdx, stringIdx, colIdx: colIdx + 1 });
-      } else if (measureIdx < measures.length - 1) {
-        setActiveCell({ measureIdx: measureIdx + 1, stringIdx, colIdx: 0 });
-      }
-    }
-
-    const isDigit = /^[0-9]$/.test(e.key);
-    const isTechnique = /^[hps/\\b~x]$/i.test(e.key);
-
-    if (isDigit) {
-      e.preventDefault();
-      const nextMeasures = deepCloneMeasures(measures);
-      const prevVal = nextMeasures[measureIdx][stringIdx][colIdx];
-      let nextVal = e.key;
-      if (prevVal && /^[0-9]$/.test(prevVal)) {
-        const combined = prevVal + e.key;
-        if (parseInt(combined, 10) <= 24) nextVal = combined;
-      }
-      nextMeasures[measureIdx][stringIdx][colIdx] = nextVal;
-      updateAndSave(nextMeasures);
-      if (colIdx < totalCols - 1) {
-        setActiveCell({ measureIdx, stringIdx, colIdx: colIdx + 1 });
-      } else if (measureIdx < measures.length - 1) {
-        setActiveCell({ measureIdx: measureIdx + 1, stringIdx, colIdx: 0 });
-      }
-    } else if (isTechnique) {
-      e.preventDefault();
-      const nextMeasures = deepCloneMeasures(measures);
-      nextMeasures[measureIdx][stringIdx][colIdx] = e.key.toLowerCase();
-      updateAndSave(nextMeasures);
-      if (colIdx < totalCols - 1) {
-        setActiveCell({ measureIdx, stringIdx, colIdx: colIdx + 1 });
-      } else if (measureIdx < measures.length - 1) {
-        setActiveCell({ measureIdx: measureIdx + 1, stringIdx, colIdx: 0 });
-      }
-    } else if (e.key === "Backspace" || e.key === "Delete") {
-      e.preventDefault();
-      const nextMeasures = deepCloneMeasures(measures);
-      nextMeasures[measureIdx][stringIdx][colIdx] = "";
-      updateAndSave(nextMeasures);
-      if (e.key === "Backspace") {
-        if (colIdx > 0) {
-          setActiveCell({ measureIdx, stringIdx, colIdx: colIdx - 1 });
-        } else if (measureIdx > 0) {
-          const prevCols = measures[measureIdx - 1][0].length;
-          setActiveCell({ measureIdx: measureIdx - 1, stringIdx, colIdx: prevCols - 1 });
-        }
-      }
-    }
-  };
-
-  const handleAddMeasure = () => {
-    const nextMeasures = [...deepCloneMeasures(measures), createEmptyMeasure(colsPerMeasure)];
-    updateAndSave(nextMeasures);
-    setActiveCell({ measureIdx: nextMeasures.length - 1, stringIdx: 0, colIdx: 0 });
-  };
-
-  const handleRemoveMeasure = (idx) => {
-    if (measures.length <= 1) {
-      const nextMeasures = [createEmptyMeasure(colsPerMeasure)];
-      updateAndSave(nextMeasures);
-      setActiveCell(null);
+      if (str > 0) setActive({ col, str: str - 1 });
       return;
     }
-    const nextMeasures = deepCloneMeasures(measures.filter((_, i) => i !== idx));
-    updateAndSave(nextMeasures);
-    setActiveCell(null);
-  };
-
-  const handleClearMeasure = (idx) => {
-    const nextMeasures = deepCloneMeasures(measures);
-    nextMeasures[idx] = createEmptyMeasure(colsPerMeasure);
-    updateAndSave(nextMeasures);
-  };
-
-  const insertTechniqueViaButton = (char) => {
-    if (!activeCell) return;
-    const { measureIdx, stringIdx, colIdx } = activeCell;
-    const nextMeasures = deepCloneMeasures(measures);
-    nextMeasures[measureIdx][stringIdx][colIdx] = char;
-    updateAndSave(nextMeasures);
-    const totalCols = measures[measureIdx][0].length;
-    if (colIdx < totalCols - 1) {
-      setActiveCell({ measureIdx, stringIdx, colIdx: colIdx + 1 });
-    } else if (measureIdx < measures.length - 1) {
-      setActiveCell({ measureIdx: measureIdx + 1, stringIdx, colIdx: 0 });
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (str < 5) setActive({ col, str: str + 1 });
+      return;
     }
-    if (containerRef.current) containerRef.current.focus();
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const p = prevNoteCol(cols, col);
+      if (p >= 0) setActive({ col: p, str });
+      return;
+    }
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      let n = nextNoteCol(cols, col);
+      if (n < 0) {
+        const next = [...cloneCols(cols), makeNoteCol()];
+        n = next.length - 1;
+        commit(next);
+      }
+      setActive({ col: n, str });
+      return;
+    }
+    if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      const next = cloneCols(cols);
+      const prev = next[col].cells[str];
+      let v = e.key;
+      if (prev && /^[0-9]$/.test(prev)) {
+        const combined = prev + e.key;
+        if (parseInt(combined, 10) <= 24) v = combined;
+      }
+      next[col].cells[str] = v;
+      let target = nextNoteCol(next, col);
+      if (target < 0) {
+        next.push(makeNoteCol());
+        target = next.length - 1;
+      }
+      commit(next);
+      setActive({ col: target, str });
+      return;
+    }
+    if (e.key === "Backspace" || e.key === "Delete") {
+      e.preventDefault();
+      const next = cloneCols(cols);
+      next[col].cells[str] = "";
+      commit(next);
+      if (e.key === "Backspace") {
+        const p = prevNoteCol(next, col);
+        if (p >= 0) setActive({ col: p, str });
+      }
+      return;
+    }
   };
 
-  const handleColsChange = (e) => {
-    const nextCols = parseInt(e.target.value, 10);
-    setColsPerMeasure(nextCols);
-    const nextMeasures = measures.map((measure) =>
-      Array.from({ length: 6 }, (_, s) => {
-        const row = [...measure[s]];
-        if (row.length < nextCols) {
-          while (row.length < nextCols) row.push("");
-        } else if (row.length > nextCols) {
-          row.length = nextCols;
-        }
-        return row;
-      })
-    );
-    updateAndSave(nextMeasures);
-    setActiveCell(null);
+  // Wstawia kreskę taktu / sekcję w bieżącej kolumnie (przed aktywną), żeby nie
+  // tworzyć dodatkowej pustej przerwy na końcu. Bez aktywnej komórki — dokleja na końcu.
+  const insertMarkerAtActive = (marker) => {
+    const next = cloneCols(cols);
+    if (!active) {
+      next.push(marker, makeNoteCol());
+      commit(next);
+      setActive({ col: next.length - 1, str: 0 });
+      focusSelf();
+      return;
+    }
+    const { col, str } = active;
+    next.splice(col, 0, marker);
+    const target = col + 1; // dawna aktywna kolumna, teraz za kreską
+    if (target >= next.length || !isNoteCol(next[target])) {
+      next.splice(target, 0, makeNoteCol());
+    }
+    commit(next);
+    setActive({ col: target, str });
+    focusSelf();
   };
+
+  const endMeasure = () => insertMarkerAtActive({ bar: true });
+  const newSection = () => insertMarkerAtActive({ section: true });
+
+  const removeLastColumn = () => {
+    if (cols.length <= 1) return;
+    const next = cloneCols(cols).slice(0, -1);
+    commit(next);
+    setActive(null);
+  };
+
+  const clearAll = () => {
+    const init = startCols();
+    commit(init);
+    setActive(null);
+  };
+
+  const sections = splitSections(cols);
 
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      onBlur={handleContainerBlur}
-      className="visual-tab-editor-container outline-none"
-      style={{ outline: "none" }}
-    >
-      <Card className="mb-3 border-0 bg-light shadow-sm">
-        <Card.Body className="py-2 px-3">
-          <Row className="align-items-center g-3">
-            <Col xs="auto" className="d-flex align-items-center gap-2">
-              <span className="small fw-semibold text-muted">Długość taktu:</span>
-              <Form.Select
-                size="sm"
-                value={colsPerMeasure}
-                onChange={handleColsChange}
-                style={{ width: "90px" }}
-              >
-                <option value={8}>8 kroków</option>
-                <option value={12}>12 kroków</option>
-                <option value={16}>16 kroków</option>
-                <option value={24}>24 kroki</option>
-                <option value={32}>32 kroki</option>
-              </Form.Select>
-            </Col>
-            <Col className="d-flex flex-wrap gap-1 align-items-center">
-              <span className="small fw-semibold text-muted me-2">Techniki:</span>
-              {[
-                { label: "h (hammer-on)", val: "h" },
-                { label: "p (pull-off)", val: "p" },
-                { label: "/ (slide up)", val: "/" },
-                { label: "\\ (slide down)", val: "\\" },
-                { label: "b (bend)", val: "b" },
-                { label: "~ (vibrato)", val: "~" },
-                { label: "x (tłumiony)", val: "x" },
-              ].map((tech) => (
-                <Button
-                  key={tech.val}
-                  size="sm"
-                  variant="outline-primary"
-                  type="button"
-                  disabled={!activeCell}
-                  onClick={() => insertTechniqueViaButton(tech.val)}
-                  title={tech.label}
-                  style={{ minWidth: "32px", fontWeight: "600" }}
-                >
-                  {tech.val}
-                </Button>
-              ))}
-            </Col>
-            <Col xs="auto">
-              <Button size="sm" variant="success" type="button" onClick={handleAddMeasure}>
-                + Dodaj takt
-              </Button>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+    <div ref={containerRef} tabIndex={0} onKeyDown={handleKeyDown} style={{ outline: "none" }}>
+      <div className="d-flex flex-wrap gap-2 align-items-center mb-2">
+        <Button size="sm" variant="primary" type="button" onClick={endMeasure}>
+          <i className="bi bi-distribute-vertical me-1" />
+          Zakończ takt |
+        </Button>
+        <Button size="sm" variant="outline-primary" type="button" onClick={newSection}>
+          <i className="bi bi-plus-square me-1" />
+          Nowa sekcja
+        </Button>
+        <Button size="sm" variant="outline-secondary" type="button" onClick={removeLastColumn}>
+          Usuń ostatnią kolumnę
+        </Button>
+        <Button size="sm" variant="outline-danger" type="button" onClick={clearAll}>
+          Wyczyść
+        </Button>
+        <span className="small text-muted ms-auto">
+          Kliknij pole i wpisuj progi (0–24). Spacja = pusty krok. „Zakończ takt" wstawia kreskę, „Nowa sekcja" nowy blok.
+        </span>
+      </div>
 
-      <div className="d-flex flex-column gap-4">
-        {measures.map((measure, measureIdx) => (
-          <Card key={measureIdx} className="shadow-sm border-light">
-            <Card.Header className="d-flex justify-content-between align-items-center py-2">
-              <span className="fw-semibold text-primary small">Takt {measureIdx + 1}</span>
-              <div className="d-flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline-secondary"
-                  type="button"
-                  onClick={() => handleClearMeasure(measureIdx)}
-                  style={{ fontSize: "12px", padding: "2px 8px" }}
-                >
-                  Wyczyść
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline-danger"
-                  type="button"
-                  onClick={() => handleRemoveMeasure(measureIdx)}
-                  style={{ fontSize: "12px", padding: "2px 8px" }}
-                >
-                  Usuń
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Body className="p-3 bg-light overflow-auto">
-              <div className="position-relative d-flex flex-column select-none" style={{ minWidth: "500px" }}>
-                {STRINGS.map((strLabel, stringIdx) => {
-                  const cells = measure[stringIdx];
-                  return (
+      <div className="d-flex flex-column gap-3">
+        {sections.map((group, gi) => (
+          <div key={gi}>
+            <div
+              className="fw-semibold text-uppercase mb-1"
+              style={{ fontSize: "0.72rem", letterSpacing: "0.06em", color: "var(--frets-text-muted)" }}
+            >
+              Sekcja {gi + 1}
+            </div>
+            <div
+              className="p-3 rounded-3"
+              style={{
+                background: "var(--frets-surface-2)",
+                border: "1px solid var(--frets-border)",
+                overflowX: "auto",
+              }}
+            >
+              <div style={{ width: "max-content" }}>
+                {STRINGS.map((label, si) => (
+                  <div key={si} className="d-flex align-items-center" style={{ height: 34 }}>
                     <div
-                      key={strLabel}
-                      className="d-flex align-items-center position-relative"
-                      style={{ height: "36px" }}
+                      style={{
+                        width: 20,
+                        flexShrink: 0,
+                        fontFamily: "monospace",
+                        fontSize: 13,
+                        color: "var(--frets-text-muted)",
+                      }}
                     >
-                      <div
-                        className="fw-bold text-muted d-flex align-items-center justify-content-center"
-                        style={{ width: "24px", zIndex: 1, fontSize: "14px", marginRight: "8px", fontFamily: "monospace" }}
-                      >
-                        {strLabel}
-                      </div>
-                      <div
-                        className="position-absolute bg-secondary opacity-50"
-                        style={{ left: "32px", right: 0, top: "50%", height: "2px", transform: "translateY(-50%)", zIndex: 0 }}
-                      />
-                      <div className="d-flex flex-grow-1 align-items-center justify-content-between position-relative z-1" style={{ paddingLeft: "8px" }}>
-                        {cells.map((cellValue, colIdx) => {
-                          const isActive =
-                            activeCell &&
-                            activeCell.measureIdx === measureIdx &&
-                            activeCell.stringIdx === stringIdx &&
-                            activeCell.colIdx === colIdx;
-                          return (
-                            <div
-                              key={colIdx}
-                              onClick={(e) => handleCellClick(measureIdx, stringIdx, colIdx, e)}
-                              className="d-flex align-items-center justify-content-center border position-relative rounded-circle cursor-pointer"
-                              style={{
-                                width: "26px",
-                                height: "26px",
-                                backgroundColor: cellValue ? "#0d6efd" : isActive ? "#e7f1ff" : "#fff",
-                                color: cellValue ? "#fff" : "#000",
-                                borderColor: isActive ? "#0d6efd" : "#dee2e6",
-                                borderWidth: isActive ? "2px" : "1px",
-                                boxShadow: isActive ? "0 0 0 0.25rem rgba(13, 110, 253, 0.25)" : "none",
-                                cursor: "pointer",
-                                transition: "all 0.1s ease-in-out",
-                              }}
-                            >
-                              <span style={{ fontSize: "13px", fontWeight: "700", fontFamily: "monospace" }}>
-                                {cellValue || ""}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {label}
                     </div>
-                  );
-                })}
+                    <div className="d-flex align-items-center">
+                      {group.map(({ col, index }) =>
+                        col.bar ? (
+                          <div
+                            key={index}
+                            style={{
+                              width: 14,
+                              height: 34,
+                              flexShrink: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <div style={{ width: 2, height: 28, background: "var(--frets-text-muted)", opacity: 0.5 }} />
+                          </div>
+                        ) : (
+                          <div
+                            key={index}
+                            onClick={(e) => clickCell(index, si, e)}
+                            className="d-flex align-items-center justify-content-center"
+                            style={{ width: 26, height: 34, flexShrink: 0, position: "relative", cursor: "pointer" }}
+                          >
+                            <div style={{ position: "absolute", left: 0, right: 0, top: "50%", height: 1, background: "var(--frets-border)" }} />
+                            {(() => {
+                              const isActive = active && active.col === index && active.str === si;
+                              const v = col.cells[si];
+                              return (
+                                <span
+                                  style={{
+                                    position: "relative",
+                                    zIndex: 1,
+                                    minWidth: 18,
+                                    height: 20,
+                                    padding: "0 3px",
+                                    borderRadius: 6,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontFamily: "monospace",
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    lineHeight: 1,
+                                    background: isActive
+                                      ? "var(--frets-accent)"
+                                      : v
+                                      ? "var(--frets-surface-2)"
+                                      : "transparent",
+                                    color: isActive ? "#fff" : "var(--frets-accent-light)",
+                                    boxShadow: isActive ? "0 0 0 2px var(--frets-accent)" : "none",
+                                  }}
+                                >
+                                  {v || (isActive ? " " : "")}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>

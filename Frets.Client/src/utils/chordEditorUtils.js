@@ -1,3 +1,5 @@
+import { chordDisplayName } from "./chordNameUtils";
+
 export function createChordSet(allChords) {
   return new Set(allChords.map((chord) => {
     if (typeof chord === "string") return chord.toLowerCase();
@@ -143,43 +145,63 @@ export function buildHighlightedEditorHtml(chordEditorText, chordSet) {
     .join("\n");
 }
 
+function sectionTypeFromLabel(label) {
+  const l = label.toLowerCase();
+  if (l.includes("zwrotka") || l.includes("verse")) return "verse";
+  if (l.includes("refren") || l.includes("chorus")) return "chorus";
+  if (l.includes("bridge")) return "bridge";
+  if (l.includes("intro")) return "intro";
+  if (l.includes("outro")) return "outro";
+  return "verse";
+}
+
 export function buildChordJsonFromEditorText(chordEditorText, allChords) {
   const chordSet = createChordSet(allChords);
-  const parsed = parseChordEditorText(chordEditorText, chordSet);
 
-  const lines = parsed.map((line) => {
-    const resolvedChords = line.chords.map((c) => {
+  const resolveChords = (chords) =>
+    chords.map((c) => {
       const matched = allChords.find((dbChord) => {
         if (typeof dbChord === "string") return false;
-        const name = `${dbChord.key}${dbChord.suffix}`.toLowerCase();
-        return name === c.chord.toLowerCase();
+        // Dopasowanie po wyświetlanej nazwie (np. "C", "Am"), tak samo jak przy
+        // wyświetlaniu diagramów — wcześniej sklejano key+suffix ("Cmajor"),
+        // przez co podstawowe akordy nigdy nie dostawały chordId.
+        return chordDisplayName(dbChord.key, dbChord.suffix).toLowerCase() === c.chord.toLowerCase();
       });
-      return {
-        chord: c.chord,
-        chordId: matched ? matched.id : null,
-        offset: c.offset,
-      };
+      return { chord: c.chord, chordId: matched ? matched.id : null, offset: c.offset };
     });
 
-    return {
+  // Podział tekstu na bloki wg nagłówków [Zwrotka] / [Refren] / ...
+  const headerRe = /^\[(.+)\]$/;
+  const blocks = [];
+  let current = { label: "Tekst", explicit: false, textLines: [] };
+
+  for (const raw of chordEditorText.split("\n")) {
+    const m = raw.trim().match(headerRe);
+    if (m) {
+      if (current.explicit || current.textLines.some((l) => l.trim() !== "")) {
+        blocks.push(current);
+      }
+      current = { label: m[1].trim(), explicit: true, textLines: [] };
+    } else {
+      current.textLines.push(raw);
+    }
+  }
+  blocks.push(current);
+
+  const sections = blocks.map((b) => {
+    const parsed = parseChordEditorText(b.textLines.join("\n"), chordSet);
+    const lines = parsed.map((line) => ({
       lyrics: line.lyrics,
-      chords: resolvedChords,
-    };
+      chords: resolveChords(line.chords),
+    }));
+    return { type: sectionTypeFromLabel(b.label), label: b.label, lines };
   });
 
-  return JSON.stringify(
-    {
-      sections: [
-        {
-          type: "verse",
-          label: "Tekst",
-          lines,
-        },
-      ],
-    },
-    null,
-    2
-  );
+  const finalSections = sections.length
+    ? sections
+    : [{ type: "verse", label: "Tekst", lines: [] }];
+
+  return JSON.stringify({ sections: finalSections }, null, 2);
 }
 
 function buildChordLineFromOffsets(chords) {

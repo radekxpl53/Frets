@@ -54,6 +54,10 @@ export default function Tuner() {
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(null);
+  const lastGoodRef = useRef({ info: null, time: 0 }); // ostatnie pewne wykrycie (do przytrzymania)
+  const smoothFreqRef = useRef(null);                  // wygładzona częstotliwość
+
+  const HOLD_MS = 600; // jak długo trzymać ostatnią nutę, gdy sygnał chwilowo zniknie
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -72,11 +76,22 @@ export default function Tuner() {
     const buf = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(buf);
     const freq = detectPitch(buf, analyser.context.sampleRate);
+    const now = performance.now();
     if (freq) {
-      const info = freqToNoteInfo(freq);
+      // Wygładzanie: stabilizuje igłę, ale resetuje przy dużym skoku (zmiana struny/oktawy)
+      const prev = smoothFreqRef.current;
+      const smoothed =
+        prev && Math.abs(freq - prev) / prev < 0.06 ? prev * 0.6 + freq * 0.4 : freq;
+      smoothFreqRef.current = smoothed;
+      const info = freqToNoteInfo(smoothed);
+      lastGoodRef.current = { info, time: now };
       setResult(info);
       setLastResult(info);
+    } else if (now - lastGoodRef.current.time < HOLD_MS) {
+      // Przytrzymaj ostatnią nutę, żeby wyświetlacz nie migotał między klatkami
+      setResult(lastGoodRef.current.info);
     } else {
+      smoothFreqRef.current = null;
       setResult(null);
     }
     rafRef.current = requestAnimationFrame(tick);

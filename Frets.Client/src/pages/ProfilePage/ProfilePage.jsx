@@ -18,6 +18,7 @@ import api from "../../api/client";
 import EditableProfileAvatar from "../../components/EditableProfileAvatar";
 import EntityAvatar from "../../components/EntityAvatar";
 import Skeleton from "../../components/Skeleton";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import { useAuth } from "../../context/AuthContext";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
@@ -40,6 +41,8 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("songs");
+
+  usePageTitle(profile?.username ?? "Profil");
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [modalPanel, setModalPanel] = useState("profile");

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Alert, Card, Col, Container, ListGroup, Row, Spinner } from "react-bootstrap";
 import api from "../../api/client";
 import EntityAvatar from "../../components/EntityAvatar";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import slugify from "../../utils/slugify";
 
 function ArtistPage() {
@@ -11,6 +12,8 @@ function ArtistPage() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  usePageTitle(artist?.name ?? "Artysta");
 
   useEffect(() => {
     const load = async () => {
