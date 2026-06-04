@@ -11,6 +11,7 @@ import EntityAvatar from "../../components/EntityAvatar";
 import PageHeader from "../../components/PageHeader";
 import SkeletonCard from "../../components/SkeletonCard";
 import heroImg from "../../assets/music-note.svg";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Home.module.css";
 
 // ─── Progi XP dla 10 poziomów (z zał. projektu: 0–5000) ─────────────────────
@@ -135,6 +136,7 @@ function SongCard({ song }) {
 
 export default function Home() {
   const { user } = useAuth();
+  usePageTitle("Piosenki");
 
   const [songs,         setSongs]         = useState([]);
   const [categories,    setCategories]    = useState([]);

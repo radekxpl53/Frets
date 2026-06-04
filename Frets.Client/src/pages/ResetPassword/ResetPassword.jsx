@@ -5,8 +5,10 @@ import api from "../../api/client";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
 import { PASSWORD_MESSAGES, validatePassword } from "../../utils/validation";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function ResetPassword() {
+  usePageTitle("Nowe hasło");
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 

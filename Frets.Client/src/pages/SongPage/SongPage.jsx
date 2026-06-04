@@ -102,10 +102,26 @@ function SongPage() {
               <h2 className="mb-1">{song.title}</h2>
               <Link
                 to={`/artists/${artistSlug}`}
-                className="text-decoration-none fw-semibold d-inline-block mb-2"
+                className="text-decoration-none fw-semibold d-inline-block mb-1"
               >
                 {song.artist}
               </Link>
+              {song.authorUsername && (
+                <div className="text-muted small mb-2">
+                  <i className="bi bi-person me-1" />
+                  Opracowanie:{" "}
+                  {song.authorSlug ? (
+                    <Link
+                      to={`/users/${encodeURIComponent(song.authorSlug)}`}
+                      className="text-decoration-none fw-semibold"
+                    >
+                      {song.authorUsername}
+                    </Link>
+                  ) : (
+                    <span className="fw-semibold">{song.authorUsername}</span>
+                  )}
+                </div>
+              )}
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 {song.genre && <Badge bg="secondary">{song.genre}</Badge>}
                 {suggestionsPath && (

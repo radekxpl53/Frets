@@ -45,7 +45,7 @@ function detectPitch(buffer, sampleRate) {
   const n = buffer.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buffer[i] * buffer[i];
-  if (Math.sqrt(rms / n) < 0.012) return null;
+  if (Math.sqrt(rms / n) < 0.008) return null; // niżej → łapie też gasnące struny
 
   const minLag = Math.floor(sampleRate / 1400);
   const maxLag = Math.min(Math.ceil(sampleRate / 60), n - 1);
@@ -57,7 +57,7 @@ function detectPitch(buffer, sampleRate) {
     corr /= len;
     if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
   }
-  if (bestLag === -1 || bestCorr < 0.005) return null;
+  if (bestLag === -1 || bestCorr < 0.003) return null;
   return sampleRate / bestLag;
 }
 
@@ -69,8 +69,19 @@ function chordName(key, suffix) {
   return key + suffix;
 }
 
-const TOLERANCE = 30;  // ± centów
-const HOLD_FRAMES = 35; // ~0.6 s @ 60 fps
+const TOLERANCE = 55;   // ± centów (z tolerancją oktawy) — wyrozumiałe dla mikrofonu
+const HOLD_FRAMES = 16;  // ~0.27 s dobrego brzmienia (z dekrementacją zamiast resetu)
+
+// Cents do najbliższej oktawy nuty docelowej. Odporne na błędy oktawowe
+// autokorelacji (łapanie harmonicznej) oraz na zagranie nuty w innej oktawie —
+// dzięki temu dobrze zagrana struna faktycznie zalicza.
+function centsToTargetClass(freq, target) {
+  let ratio = freq / target;
+  if (!(ratio > 0)) return Infinity;
+  while (ratio > Math.SQRT2) ratio /= 2;
+  while (ratio < Math.SQRT1_2) ratio *= 2;
+  return 1200 * Math.log2(ratio);
+}
 
 // ─── Ikona strun ─────────────────────────────────────────────────────────────
 
@@ -139,21 +150,24 @@ export default function PracticeModal({ chord, currentMastery, onClose, onMaster
     const idx  = currentIdxRef.current;
 
     if (freq && strings[idx]) {
-      const c = 1200 * Math.log2(freq / strings[idx].freq);
+      const c = centsToTargetClass(freq, strings[idx].freq);
       setCents(c);
       if (Math.abs(c) <= TOLERANCE) {
-        holdRef.current += 1;
+        holdRef.current = Math.min(HOLD_FRAMES, holdRef.current + 1);
         if (holdRef.current >= HOLD_FRAMES) {
           holdRef.current = 0;
           advance(idx);
           return;
         }
       } else {
-        holdRef.current = 0;
+        // zła wysokość → powolny spadek, a nie twardy reset (pojedyncze skoki
+        // wykrywania nie kasują całego postępu)
+        holdRef.current = Math.max(0, holdRef.current - 1);
       }
     } else {
       setCents(null);
-      holdRef.current = 0;
+      // krótka cisza (gasnąca struna) też nie kasuje postępu od razu
+      holdRef.current = Math.max(0, holdRef.current - 1);
     }
     rafRef.current = requestAnimationFrame(tick);
   };

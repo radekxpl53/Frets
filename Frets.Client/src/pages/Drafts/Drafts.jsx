@@ -7,6 +7,7 @@ import { statusLabel } from "../../utils/statusLabels";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import SkeletonCard from "../../components/SkeletonCard";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import slugify from "../../utils/slugify";
 import { normalizeFeedItem } from "../../utils/feedItem";
 
@@ -37,6 +38,7 @@ function feedItemKindLabel(item) {
 }
 
 function Drafts() {
+  usePageTitle("Opracowania");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

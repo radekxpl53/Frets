@@ -109,6 +109,20 @@ using (var scope = app.Services.CreateScope())
     await TuningSeeder.SeedAsync(db);
     await DefaultImageSeeder.SeedAsync(db, imageService);
     await UserSlugSeeder.SeedAsync(db);
+
+    // Backfill indeksu akordów dla wersji bez indeksu (naprawia starsze dane
+    // zapisane z chordId = null, dzięki czemu działa filtr "Mogę zagrać").
+    var chordIndexer = scope.ServiceProvider.GetRequiredService<ChordIndexer>();
+    var versionsToIndex = await db.SongVersions
+        .Where(v => v.VersionType == "chords"
+            && !v.ChordIndex.Any()
+            && v.VersionChords != null)
+        .Select(v => new { v.Id, Content = v.VersionChords!.Content })
+        .ToListAsync();
+    foreach (var v in versionsToIndex)
+        await chordIndexer.IndexAsync(v.Id, v.Content);
+    if (versionsToIndex.Count > 0)
+        await db.SaveChangesAsync();
 }
 
 if (app.Environment.IsDevelopment())

@@ -10,10 +10,12 @@ import SongSuggestField from "../../components/SongSuggestField";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
 import { validateRequired } from "../../utils/validation";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 const DRAFT_KEY = "frets:add-song:draft:v1";
 
 function AddSong() {
+  usePageTitle("Dodaj piosenkę");
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");

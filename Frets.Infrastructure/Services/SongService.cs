@@ -144,7 +144,8 @@ public class SongService
             song.SubmittedAt,
             ArtistSlug: song.Artist.Slug,
             ArtistImageUrl: artistImageUrl,
-            YouTubeUrl: song.YouTubeUrl
+            YouTubeUrl: song.YouTubeUrl,
+            AuthorSlug: song.Author.Slug
         );
     }
 
@@ -174,7 +175,8 @@ public class SongService
             song.SubmittedAt,
             voteSummary.PositiveVoteWeight,
             voteSummary.NegativeVoteWeight,
-            voteSummary.UserVoteIsPositive
+            voteSummary.UserVoteIsPositive,
+            AuthorSlug: song.Author.Slug
         );
     }
 
@@ -231,6 +233,7 @@ public class SongService
 
         var existingSong = await _context.Songs
             .Include(s => s.Artist)
+            .Include(s => s.Author)
             .FirstOrDefaultAsync(s =>
                 s.ArtistId == artist.Id &&
                 s.TitleSlug == titleSlug &&
@@ -340,7 +343,8 @@ public class SongService
             existingSong.Artist.Name,
             genre,
             existingSong.Status,
-            author.Username,
+            // oryginalny autor piosenki, a nie osoba dodająca wersję (np. admin)
+            existingSong.Author?.Username ?? author.Username,
             existingSong.SubmittedAt);
     }
 

@@ -4,6 +4,7 @@ import { Alert, Button, Card, Container, Nav, Spinner } from "react-bootstrap";
 import api from "../../api/client";
 import VersionSuggestionsSection from "../../components/VersionSuggestionsSection";
 import { useAuth } from "../../context/AuthContext";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function VersionSuggestionsPage() {
   const { artist, title } = useParams();
@@ -21,6 +22,8 @@ function VersionSuggestionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeType, setActiveType] = useState("chords");
+
+  usePageTitle(song?.title ? `Poprawki: ${song.title}` : "Propozycje poprawek");
 
   const typeParam = searchParams.get("type");
 

@@ -447,6 +447,74 @@ a.card:active,
   color: var(--frets-text) !important;
 }
 
+/* ─── Wizualna tabulatura (read-only) ─────────────────────────────────────── */
+.tabv-measure {
+  background: var(--frets-surface-2);
+  border: 1px solid var(--frets-border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  /* panel dopasowuje się do zawartości (kończy na ostatnim takcie), a długie
+     sekcje i tak zawijają się do kolejnych linii (bez poziomego scrolla) */
+  width: max-content;
+  max-width: 100%;
+}
+.tabv-row { display: flex; align-items: center; height: 30px; }
+.tabv-label {
+  width: 18px;
+  flex-shrink: 0;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--frets-text-muted);
+}
+.tabv-line {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.tabv-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--frets-border);
+}
+.tabv-cell {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+}
+.tabv-note {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--frets-surface-2); /* maskuje linię struny pod cyfrą */
+  color: var(--frets-accent-light);
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tabv-note--tech {
+  color: var(--frets-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 1px;
+}
+/* Kreska taktu — pionowa linia na pełną wysokość wiersza (sąsiednie wiersze
+   łączą się w ciągłą kreskę przez wszystkie struny) */
+.tabv-bar {
+  width: 2px;
+  height: 30px;
+  background: var(--frets-text-muted);
+  opacity: 0.5;
+}
+
 /* ─── Skeleton (placeholdery ładowania) ───────────────────────────────────── */
 .skeleton {
   background: linear-gradient(

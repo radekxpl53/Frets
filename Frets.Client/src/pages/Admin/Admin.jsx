@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRef } from "react";
 import {
@@ -12,22 +12,6 @@ import EditableProfileAvatar from "../../components/EditableProfileAvatar";
 import { formatVoteCounts } from "../../components/VotePanel";
 import slugify from "../../utils/slugify";
 import { getApiError, getSongId } from "../../utils/apiError";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STATUS_VARIANT = {
-  draft: "secondary",
-  pending: "warning",
-  approved: "success",
-  rejected: "danger",
-};
-
-const STATUS_LABELS = {
-  draft: "Szkic",
-  pending: "Oczekuje",
-  approved: "Zatwierdzona",
-  rejected: "Odrzucona",
-};
 
 // ─── Songs tab ────────────────────────────────────────────────────────────────
 
@@ -182,7 +166,14 @@ function ArtistsTab() {
   const [uploadingId, setUploadingId] = useState(null);
   const [error,       setError]       = useState("");
   const [message,     setMessage]     = useState("");
+  const [search,      setSearch]      = useState("");
   const fileInputRefs = useRef({});
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return artists;
+    return artists.filter((a) => (a.name ?? "").toLowerCase().includes(q));
+  }, [artists, search]);
 
   const load = async () => {
     setLoading(true);
@@ -221,13 +212,25 @@ function ArtistsTab() {
       {error   && <Alert variant="danger"  onClose={() => setError("")}   dismissible>{error}</Alert>}
       {message && <Alert variant="success" onClose={() => setMessage("")} dismissible>{message}</Alert>}
 
+      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <Form.Control
+          type="search"
+          size="sm"
+          placeholder="Szukaj artysty…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ maxWidth: 280 }}
+        />
+        <span className="text-muted small">{filtered.length} artystów</span>
+      </div>
+
       {loading ? (
         <div className="text-center mt-5"><Spinner animation="border" /></div>
-      ) : artists.length === 0 ? (
-        <p className="text-muted">Brak artystów.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-muted">{search ? "Brak artystów pasujących do wyszukiwania." : "Brak artystów."}</p>
       ) : (
         <Row className="g-3">
-          {artists.map((artist) => (
+          {filtered.map((artist) => (
             <Col md={6} lg={4} key={artist.id}>
               <Card>
                 <Card.Body className="text-center">
@@ -285,6 +288,17 @@ function UsersTab() {
   const [message,    setMessage]    = useState("");
   const [confirmId,  setConfirmId]  = useState(null); // ID usera do potwierdzenia usunięcia
   const [deletingId, setDeletingId] = useState(null);
+  const [search,     setSearch]     = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        (u.username ?? "").toLowerCase().includes(q) ||
+        (u.email ?? "").toLowerCase().includes(q)
+    );
+  }, [users, search]);
 
   const load = async () => {
     setLoading(true);
@@ -337,10 +351,22 @@ function UsersTab() {
         </Modal.Footer>
       </Modal>
 
+      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <Form.Control
+          type="search"
+          size="sm"
+          placeholder="Szukaj po nazwie lub emailu…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ maxWidth: 320 }}
+        />
+        <span className="text-muted small">{filtered.length} użytkowników</span>
+      </div>
+
       {loading ? (
         <div className="text-center mt-5"><Spinner animation="border" /></div>
-      ) : users.length === 0 ? (
-        <p className="text-muted">Brak użytkowników.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-muted">{search ? "Brak użytkowników pasujących do wyszukiwania." : "Brak użytkowników."}</p>
       ) : (
         <div className="table-responsive">
           <table className="table table-sm table-hover align-middle">
@@ -355,7 +381,7 @@ function UsersTab() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {filtered.map((u) => (
                 <tr key={u.id}>
                   <td>
                     <Link to={`/users/${u.slug}`} className="text-decoration-none fw-semibold">

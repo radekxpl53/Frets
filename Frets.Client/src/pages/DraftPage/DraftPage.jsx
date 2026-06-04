@@ -8,6 +8,7 @@ import TabSheet from "../../components/TabSheet";
 import { useAuth } from "../../context/AuthContext";
 import VotePanel, { formatVoteCounts } from "../../components/VotePanel";
 import { statusLabel } from "../../utils/statusLabels";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import slugify from "../../utils/slugify";
 import { getApiError, getSongId, isAdminUser } from "../../utils/apiError";
 
@@ -26,6 +27,8 @@ function DraftPage() {
   const [adminActionLoading, setAdminActionLoading] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
   const [adminMsgVariant, setAdminMsgVariant] = useState("secondary");
+
+  usePageTitle(song?.title ? `${song.title} (szkic)` : "Szkic");
 
   const loadData = async () => {
     setLoading(true);
