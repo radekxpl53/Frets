@@ -2,10 +2,12 @@ import { Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import ChordDiagram from "../../components/ChordDiagram";
 import PageHeader from "../../components/PageHeader";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 const KEYS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 
 function Chords() {
+  usePageTitle("Akordy");
   return (
     <Container className="mt-4">
       <PageHeader

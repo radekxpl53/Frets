@@ -6,8 +6,10 @@ import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
 import { parseApiValidationError } from "../../utils/formErrors";
 import { validateEmail, validatePassword, validateUsername } from "../../utils/validation";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function Register() {
+  usePageTitle("Rejestracja");
   const { register } = useAuth();
   const { clearErrors, setFieldError, setFieldErrors, getError, applyApiError, bindText } =
     useFormErrors();

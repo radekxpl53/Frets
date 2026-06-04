@@ -5,8 +5,10 @@ import api from "../../api/client";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
 import { validateEmail } from "../../utils/validation";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 function ForgotPassword() {
+  usePageTitle("Przypomnij hasło");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
