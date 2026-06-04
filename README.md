@@ -102,7 +102,7 @@ graph TD
 
 Schemat zdefiniowano w `AppDbContext`. Poniżej tabele pogrupowane funkcjonalnie; relacje wiele-do-wielu realizują tabele pośredniczące/indeksujące.
 
-> *(Opcjonalnie)* diagram ERD: `![Schemat bazy danych](Assets/README/db-schema.png)`
+![Schemat bazy danych](Assets/README/db-erd.png)
 
 ### 4.1. Konta i gamifikacja
 - **`users`** — `Id`, `Username`, `Slug`, `Email` (login, unikalny), `PasswordHash` (BCrypt), `Role` (`user`/`admin`), `Bio`, `Level`, `Xp`, `CurrentStreak`, `LongestStreak`, `LastActivityDate`, `EmailConfirmed`, `CreatedAt`, `IsDeleted`, `DeletedAt`.
