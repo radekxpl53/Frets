@@ -19,6 +19,7 @@ import EditableProfileAvatar from "../../components/EditableProfileAvatar";
 import EntityAvatar from "../../components/EntityAvatar";
 import Skeleton from "../../components/Skeleton";
 import { usePageTitle } from "../../hooks/usePageTitle";
+import styles from "./ProfilePage.module.css";
 import { useAuth } from "../../context/AuthContext";
 import FormField from "../../components/FormField";
 import { useFormErrors } from "../../hooks/useFormErrors";
@@ -318,6 +319,44 @@ function ProfilePage() {
 
   const list = activeTab === "songs" ? songs : drafts;
   const displayImageUrl = modalImageUrl ?? profile.imageUrl;
+  const joinedDate = new Date(profile.createdAt).toLocaleDateString("pl-PL");
+  const profileStats = [
+    {
+      icon: "bi-fire",
+      label: "Seria",
+      value: profile.currentStreak ?? 0,
+      suffix: "dni",
+      tone: "warm",
+    },
+    {
+      icon: "bi-trophy",
+      label: "Rekord",
+      value: profile.longestStreak ?? 0,
+      suffix: "dni",
+      tone: "gold",
+    },
+    {
+      icon: "bi-music-note-list",
+      label: "Akordy",
+      value: profile.chordsLearned ?? 0,
+      suffix: "opanowane",
+      tone: "purple",
+    },
+    {
+      icon: "bi-vinyl",
+      label: "Piosenki",
+      value: profile.songsAdded ?? 0,
+      suffix: "dodane",
+      tone: "slate",
+    },
+    {
+      icon: "bi-calendar3",
+      label: "Dołączył",
+      value: joinedDate,
+      suffix: "",
+      tone: "green",
+    },
+  ];
 
   return (
     <Container className="mt-4" style={{ maxWidth: "900px" }}>
@@ -374,15 +413,20 @@ function ProfilePage() {
                 )
               )}
 
-              <Row className="g-2 small text-muted">
-                <Col xs={6} sm={4}>Seria: {profile.currentStreak} dni</Col>
-                <Col xs={6} sm={4}>Rekord: {profile.longestStreak} dni</Col>
-                <Col xs={6} sm={4}>Akordy: {profile.chordsLearned}</Col>
-                <Col xs={6} sm={4}>Piosenki: {profile.songsAdded}</Col>
-                <Col xs={6} sm={4}>
-                  Od {new Date(profile.createdAt).toLocaleDateString("pl-PL")}
-                </Col>
-              </Row>
+              <div className={styles.profileStats}>
+                {profileStats.map((stat) => (
+                  <div key={stat.label} className={styles.statCard}>
+                    <span className={`${styles.statIcon} ${styles[stat.tone]}`}>
+                      <i className={`bi ${stat.icon}`} />
+                    </span>
+                    <span className={styles.statMeta}>
+                      <span className={styles.statLabel}>{stat.label}</span>
+                      <span className={styles.statValue}>{stat.value}</span>
+                      {stat.suffix && <span className={styles.statSuffix}>{stat.suffix}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </Col>
           </Row>
 
