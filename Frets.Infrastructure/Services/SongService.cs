@@ -236,6 +236,13 @@ public class SongService
             _context.Artists.Add(artist);
             createdNewArtist = true;
         }
+        else if (artist.IsDeleted)
+        {
+            // Reużycie nazwy usuniętego artysty — przywracamy go.
+            artist.IsDeleted = false;
+            artist.DeletedAt = null;
+            artist.Name = request.Artist;
+        }
 
         var titleSlug = SlugHelper.Generate(request.Title);
         var category = await _context.Categories

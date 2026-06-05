@@ -1,3 +1,4 @@
+using Frets.Core.DTOs.Artists;
 using Frets.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -136,6 +137,28 @@ public class AdminController : ControllerBase
 
         var artists = await _artistService.GetAllAsync();
         return Ok(artists);
+    }
+
+    [HttpPut("artists/{id}")]
+    public async Task<IActionResult> UpdateArtist(Guid id, [FromBody] UpdateArtistRequest request)
+    {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
+        var (error, artist) = await _artistService.UpdateAsync(id, request.Name);
+        if (error != null) return BadRequest(error);
+        return Ok(artist);
+    }
+
+    [HttpDelete("artists/{id}")]
+    public async Task<IActionResult> DeleteArtist(Guid id)
+    {
+        var denied = await EnsureAdminAsync();
+        if (denied != null) return denied;
+
+        var error = await _artistService.DeleteAsync(id);
+        if (error != null) return BadRequest(error);
+        return Ok("Artist deleted.");
     }
 
     [HttpPost("artists/{artistId}/image")]
