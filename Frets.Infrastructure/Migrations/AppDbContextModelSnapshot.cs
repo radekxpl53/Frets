@@ -28,12 +28,6 @@ namespace Frets.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -109,6 +103,32 @@ namespace Frets.Infrastructure.Migrations
                     b.ToTable("Chords");
                 });
 
+            modelBuilder.Entity("Frets.Core.Entities.EmailConfirmationToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EmailConfirmationTokens");
+                });
+
             modelBuilder.Entity("Frets.Core.Entities.EmailChangeToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -137,32 +157,6 @@ namespace Frets.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("EmailChangeTokens");
-                });
-
-            modelBuilder.Entity("Frets.Core.Entities.EmailConfirmationToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Used")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("EmailConfirmationTokens");
                 });
 
             modelBuilder.Entity("Frets.Core.Entities.Image", b =>
@@ -397,9 +391,6 @@ namespace Frets.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Bio")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -427,6 +418,9 @@ namespace Frets.Infrastructure.Migrations
 
                     b.Property<int>("LongestStreak")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Bio")
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -694,7 +688,7 @@ namespace Frets.Infrastructure.Migrations
                     b.Navigation("Image");
                 });
 
-            modelBuilder.Entity("Frets.Core.Entities.EmailChangeToken", b =>
+            modelBuilder.Entity("Frets.Core.Entities.EmailConfirmationToken", b =>
                 {
                     b.HasOne("Frets.Core.Entities.User", "User")
                         .WithMany()
@@ -705,7 +699,7 @@ namespace Frets.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Frets.Core.Entities.EmailConfirmationToken", b =>
+            modelBuilder.Entity("Frets.Core.Entities.EmailChangeToken", b =>
                 {
                     b.HasOne("Frets.Core.Entities.User", "User")
                         .WithMany()

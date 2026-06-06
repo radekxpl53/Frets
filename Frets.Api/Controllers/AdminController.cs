@@ -150,17 +150,6 @@ public class AdminController : ControllerBase
         return Ok(artist);
     }
 
-    [HttpDelete("artists/{id}")]
-    public async Task<IActionResult> DeleteArtist(Guid id)
-    {
-        var denied = await EnsureAdminAsync();
-        if (denied != null) return denied;
-
-        var error = await _artistService.DeleteAsync(id);
-        if (error != null) return BadRequest(error);
-        return Ok("Artist deleted.");
-    }
-
     [HttpPost("artists/{artistId}/image")]
     [RequestSizeLimit(2 * 1024 * 1024)]
     public async Task<IActionResult> SetArtistImage(Guid artistId, IFormFile file)

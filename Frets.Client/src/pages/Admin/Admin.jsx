@@ -170,8 +170,6 @@ function ArtistsTab() {
   const [editArtist,  setEditArtist]  = useState(null); // { id, name } w trybie edycji
   const [editName,    setEditName]    = useState("");
   const [savingEdit,  setSavingEdit]  = useState(false);
-  const [deleteArtist, setDeleteArtist] = useState(null); // artysta do potwierdzenia usunięcia
-  const [deletingId,  setDeletingId]  = useState(null);
   const fileInputRefs = useRef({});
 
   const filtered = useMemo(() => {
@@ -234,22 +232,6 @@ function ArtistsTab() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteArtist) return;
-    const id = deleteArtist.id;
-    setMessage(""); setError(""); setDeletingId(id);
-    setDeleteArtist(null);
-    try {
-      await api.delete(`/admin/artists/${id}`);
-      setMessage("Artysta został usunięty.");
-      await load();
-    } catch (err) {
-      setError(getApiError(err, "Nie udało się usunąć artysty."));
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   return (
     <>
       {error   && <Alert variant="danger"  onClose={() => setError("")}   dismissible>{error}</Alert>}
@@ -277,25 +259,6 @@ function ArtistsTab() {
           <Button variant="primary" size="sm" onClick={handleEditSave} disabled={savingEdit}>
             {savingEdit ? "Zapisywanie…" : "Zapisz"}
           </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Modal potwierdzenia usunięcia */}
-      <Modal show={!!deleteArtist} onHide={() => setDeleteArtist(null)} centered size="sm">
-        <Modal.Header closeButton>
-          <Modal.Title className="fs-6">Usuń artystę</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Czy na pewno chcesz usunąć artystę <strong>{deleteArtist?.name}</strong>?
-          {deleteArtist?.songCount > 0 && (
-            <div className="text-danger small mt-2">
-              Ten artysta ma przypisane piosenki — usunięcie nie będzie możliwe.
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" size="sm" onClick={() => setDeleteArtist(null)}>Anuluj</Button>
-          <Button variant="danger" size="sm" onClick={handleDelete}>Usuń</Button>
         </Modal.Footer>
       </Modal>
 
@@ -356,22 +319,12 @@ function ArtistsTab() {
                   >
                     <i className="bi bi-person-lines-fill me-1" />Zobacz profil
                   </Button>
-                  <div className="d-flex gap-2 mt-2">
-                    <Button
-                      size="sm" variant="outline-secondary" className="flex-grow-1"
-                      onClick={() => openEdit(artist)}
-                    >
-                      <i className="bi bi-pencil me-1" />Edytuj
-                    </Button>
-                    <Button
-                      size="sm" variant="outline-danger" className="flex-grow-1"
-                      disabled={deletingId === artist.id || artist.songCount > 0}
-                      title={artist.songCount > 0 ? "Artysta ma przypisane piosenki" : "Usuń artystę"}
-                      onClick={() => setDeleteArtist(artist)}
-                    >
-                      <i className="bi bi-trash3 me-1" />Usuń
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm" variant="outline-secondary" className="mt-2 w-100"
+                    onClick={() => openEdit(artist)}
+                  >
+                    <i className="bi bi-pencil me-1" />Edytuj
+                  </Button>
                 </Card.Body>
               </Card>
             </Col>

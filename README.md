@@ -243,16 +243,16 @@ Lista artystów z wyszukiwarką oraz strona artysty z jego piosenkami. Profil u�
 *Rys. 16: Profil użytkownika ze statystykami.*
 
 ### 7.9. Panel administratora
-Trzy zakładki: **Piosenki** (zatwierdzanie/odrzucanie wg statusu), **Użytkownicy** (przegląd, wyszukiwanie po nazwie/e-mailu, soft delete), **Artyści** (przegląd, wyszukiwanie, zmiana zdjęcia).
+Trzy zakładki: **Piosenki** (zatwierdzanie/odrzucanie wg statusu), **Użytkownicy** (przegląd, wyszukiwanie po nazwie/e-mailu, soft delete), **Artyści** (przegląd, wyszukiwanie, zmiana zdjęcia, edycja nazwy).
 
-![Panel administratora](Assets/README/admin-songs.png)
-*Rys. 17: Panel administratora - piosenki.*
+![Panel administratora — piosenki](Assets/README/admin-songs.png)
+*Rys. 17: Panel administratora — piosenki.*
 
-![Panel administratora](Assets/README/admin-users.png)
-*Rys. 17: Panel administratora - użytkownicy.*
+![Panel administratora — użytkownicy](Assets/README/admin-users.png)
+*Rys. 18: Panel administratora — użytkownicy.*
 
-![Panel administratora](Assets/README/admin-artists.png)
-*Rys. 17: Panel administratora - artyści.*
+![Panel administratora — artyści](Assets/README/admin-artists.png)
+*Rys. 19: Panel administratora — artyści.*
 
 ## 8. Instalacja i uruchomienie
 

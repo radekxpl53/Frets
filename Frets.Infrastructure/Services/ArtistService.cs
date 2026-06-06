@@ -19,7 +19,7 @@ public class ArtistService
 
     public async Task<List<ArtistResponse>> GetAllAsync(string? search = null, int limit = 10)
     {
-        var query = _context.Artists.Where(a => !a.IsDeleted);
+        var query = _context.Artists.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -59,7 +59,7 @@ public class ArtistService
             .ThenInclude(ai => ai!.Image)
             .Include(a => a.Songs.Where(s => s.Status == "approved"))
             .ThenInclude(s => s.Author)
-            .FirstOrDefaultAsync(a => a.Slug == slug && !a.IsDeleted);
+            .FirstOrDefaultAsync(a => a.Slug == slug);
 
         if (artist == null) return null;
 
@@ -105,7 +105,7 @@ public class ArtistService
             return ("Nieprawidłowa nazwa artysty.", null);
 
         var slugTaken = await _context.Artists
-            .AnyAsync(a => a.Slug == newSlug && a.Id != id && !a.IsDeleted);
+            .AnyAsync(a => a.Slug == newSlug && a.Id != id);
         if (slugTaken)
             return ("Artysta o takiej nazwie już istnieje.", null);
 
@@ -123,23 +123,5 @@ public class ArtistService
             songCount,
             _imageService.ResolveStoredImageUrl(artist.ArtistImage?.Image.StoragePath)
         ));
-    }
-
-    public async Task<string?> DeleteAsync(Guid id)
-    {
-        var artist = await _context.Artists.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
-        if (artist == null)
-            return "Nie znaleziono artysty.";
-
-        // Blokujemy usunięcie, gdy artysta ma widoczne (nieusunięte) piosenki.
-        var hasSongs = await _context.Songs.AnyAsync(s => s.ArtistId == id && !s.IsDeleted);
-        if (hasSongs)
-            return "Nie można usunąć artysty, który ma przypisane piosenki.";
-
-        // Soft delete — odwracalne, spójne z użytkownikami i piosenkami.
-        artist.IsDeleted = true;
-        artist.DeletedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
-        return null;
     }
 }
